@@ -21,6 +21,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'recipes',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -34,6 +37,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'foodgram.urls'
+
+AUTH_USER_MODEL = 'users.User'
 
 TEMPLATES = [
     {
@@ -58,8 +63,8 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': getenv('POSTGRES_DB', 'foodgram'),
-        'USER': getenv('POSTGRES_USER', 'foodgram'),
+        'NAME': getenv('POSTGRES_DB', 'django'),
+        'USER': getenv('POSTGRES_USER', 'django'),
         'PASSWORD': getenv('POSTGRES_PASSWORD', ''),
         'HOST': getenv('DB_HOST', ''),
         'PORT': getenv('DB_PORT', 5432),

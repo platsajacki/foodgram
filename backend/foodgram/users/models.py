@@ -36,12 +36,8 @@ class User(AbstractUser):
 
     REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
 
-    class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
 
-
-class Follow(models.Model):
+class Follow(DateAdded, models.Model):
     """Связанная модель для реализации системы подписок."""
     user = models.ForeignKey(
         User,
@@ -58,6 +54,15 @@ class Follow(models.Model):
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
 
+    def __str__(self) -> str:
+        """
+        Возвращает строковое предсталение при обращении к объекту.
+        """
+        return (
+            f'{self.user.first_name} {self.user.last_name} подписан(а) на '
+            f'{self.following.first_name} {self.following.last_name}'
+        )
+
 
 class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
     """
@@ -66,10 +71,13 @@ class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
     """
     class Meta:
         ordering = ['-date_added', 'user']
+        unique_together = ['user', 'recipe']
+        verbose_name = 'Избранный товар'
+        verbose_name_plural = 'Избранное'
 
     def __str__(self) -> str:
         """
-        Возвращает строкового предсталение при обращении к объекту.
+        Возвращает строковое предсталение при обращении к объекту.
         """
         return f'Избранное {self.user.first_name} {self.user.last_name}'
 
@@ -81,9 +89,12 @@ class ShoppingCard(UserRecipe, DateAdded, models.Model):
     """
     class Meta:
         ordering = ['-date_added', 'user']
+        unique_together = ['user', 'recipe']
+        verbose_name = 'Товар в корзине'
+        verbose_name_plural = 'Корзины'
 
     def __str__(self) -> str:
         """
-        Возвращает строкового предсталение при обращении к объекту.
+        Возвращает строковое предсталение при обращении к объекту.
         """
         return f'Корзина {self.user.first_name} {self.user.last_name}'

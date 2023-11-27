@@ -27,6 +27,7 @@ class Tag(NameString, models.Model):
     class Meta:
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
+        ordering = ('name',)
 
 
 class Ingredient(NameString, models.Model):
@@ -39,6 +40,7 @@ class Ingredient(NameString, models.Model):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        ordering = ('name',)
 
 
 class Recipe(NameString, models.Model):
@@ -95,3 +97,16 @@ class RecipeIngredient(models.Model):
     amout = models.PositiveSmallIntegerField(
         verbose_name='Количество',
     )
+
+    class Meta:
+        verbose_name = 'Ингредиент рецепта'
+        verbose_name_plural = 'Ингредиенты рецепта'
+
+    def __str__(self) -> str:
+        """
+        Возвращает строковое предсталение при обращении к объекту.
+        """
+        return (
+            f'Ингредиент "{self.ingredient.name}" '
+            f'к рецепту "{self.recipe.name}"'
+        )

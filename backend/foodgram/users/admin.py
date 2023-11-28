@@ -22,7 +22,7 @@ class FavouriteRecipeAdmin(admin.ModelAdmin):
         'user', 'recipe', 'date_added',
     )
     list_filter = (
-        'user', 'recipe',
+        'user', 'recipe__name', 'date_added',
     )
 
 
@@ -33,7 +33,7 @@ class ShoppingCardRecipeAdmin(admin.ModelAdmin):
         'user', 'recipe', 'date_added',
     )
     list_filter = (
-        'user', 'recipe',
+        'user', 'recipe__name', 'date_added',
     )
 
 

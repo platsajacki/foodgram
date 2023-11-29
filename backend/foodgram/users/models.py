@@ -7,6 +7,22 @@ from core.models import UserRecipe, DateAdded
 
 class User(AbstractUser):
     """Модель для хранения информации о пользователях."""
+    username = models.CharField(
+        verbose_name='Уникальный юзернейм',
+        max_length=150,
+        unique=True,
+        help_text=(
+           'Обязательное поле. Не более 150 символов. '
+           'Только буквы, цифры и символы @/./+/-/_.'
+        ),
+        validators=[AbstractUser.username_validator],
+        error_messages={
+            'unique': (
+                'Пользователь с таким именем '
+                'пользователя уже существует.'
+            )
+        },
+    )
     first_name = models.CharField(
         verbose_name='Имя',
         max_length=150,
@@ -16,7 +32,7 @@ class User(AbstractUser):
         max_length=150,
     )
     email = models.EmailField(
-        verbose_name='Электроный адрес',
+        verbose_name='Адрес электронной почты',
         unique=True,
     )
     favourites = models.ManyToManyField(
@@ -34,7 +50,13 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name',]
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('email',)
 
 
 class Follow(DateAdded, models.Model):

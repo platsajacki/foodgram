@@ -104,15 +104,23 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': (
-        'rest_framework.pagination.PageNumberPagination'
+        'rest_framework.pagination.LimitOffsetPagination'
     ),
     'PAGE_SIZE': 10,
 }
 
-# DJOSER = {
-#     'SERIALIZERS': {
-#     }
-# }
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.UserCustomCreateSerializer',
+        'user': 'api.serializers.UserCustomSerializer',
+        'current_user': 'api.serializers.UserCustomSerializer',
+    },
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.AllowAny'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+    },
+    'HIDE_USERS': False,
+}
 
 
 # Internationalization

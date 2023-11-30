@@ -2,6 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
+from recipes.models import Tag
 from users.models import User, Follow
 
 
@@ -40,4 +41,14 @@ class UserCustomSerializer(UserSerializer):
                 user=current_user,
                 following=obj
             ).exists()
+        )
+
+
+class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Tag."""
+    class Meta:
+        model = Tag
+        fields = (
+            'id', 'name',
+            'color', 'slug',
         )

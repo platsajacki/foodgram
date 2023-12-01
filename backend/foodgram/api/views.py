@@ -7,12 +7,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from .filters import RecipeFilterSet
 from .mixins import GetNonePaginatorAllowAny
 from .serializers import (
     UserCustomSerializer, TagSerializer,
-    IngredientSerializer
+    IngredientSerializer, RecipeSerializer
 )
-from recipes.models import Tag, Ingredient
+from recipes.models import Tag, Ingredient, Recipe
 
 
 class UserCustomViewSet(UserViewSet):
@@ -31,7 +32,7 @@ class UserCustomViewSet(UserViewSet):
 
 
 class TagViewSet(GetNonePaginatorAllowAny, ModelViewSet):
-    """Представление, отвечающее за работу с тэгами."""
+    """Представление, отвечающее за работу с тегами."""
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
@@ -56,3 +57,14 @@ class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
                 | queryset.filter(name__icontains=name_param)
             )
         return queryset
+
+
+class RecipeViewSet(ModelViewSet):
+    """Представление, отвечающее за работу с рецептами."""
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    filterset_class = RecipeFilterSet
+    http_method_names = [
+        'get', 'post',
+        'patch', 'delete'
+    ]

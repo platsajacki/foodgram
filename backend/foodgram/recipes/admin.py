@@ -33,7 +33,7 @@ class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
     extra = 0
     fields = (
-        'ingredient', 'amout', 'measurement_unit'
+        'ingredient', 'amount', 'measurement_unit'
     )
     readonly_fields = ('measurement_unit',)
 

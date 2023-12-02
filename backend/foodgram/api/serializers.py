@@ -152,7 +152,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         representation['tags'] = tags_data
         return representation
 
-    def create(self, validated_data: dict[str, Any]):
+    def create(self, validated_data: dict[str, Any]) -> Recipe:
         """
         Создает новый объект 'Recipe'
         на основании валидированных данных.
@@ -167,7 +167,9 @@ class RecipeSerializer(serializers.ModelSerializer):
                 )
             except Ingredient.DoesNotExist:
                 raise serializers.ValidationError(
-                    'Такого ингредиента не существует.'
+                    {
+                        'ingredients': 'Такого ингредиента не существует.'
+                    }
                 )
             ingredient_data['ingredient'] = ingredient
         recipe: Recipe = Recipe.objects.create(**validated_data)
@@ -180,5 +182,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         recipe.tags.set(tags_data)
         return recipe
 
-    # def update(self, instance: Recipe, validated_data: dict[str, Any]):
-    #     return super().update(instance, validated_data)
+    # def update(
+    #         self, instance: Recipe, validated_data: dict[str, Any]
+    # ) -> Recipe:
+    #     instance.name = validated_data.get('name', instance.name)
+    #     instance.text = validated_data.get('text', instance.text)
+    #     instance.cooking_time = validated_data.get(
+    #         'cooking_time',
+    #         instance.cooking_time
+    #     )
+    #     instance.image = validated_data.get('image', instance.image)

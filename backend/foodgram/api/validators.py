@@ -10,7 +10,10 @@ def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
     """Проверяет уникальность тегов."""
     if len(value) > len(set(value)):
         raise ValidationError(
-            'Каждый тег должен быть уникальным.'
+            {
+                'tags':
+                'Каждый тег должен быть уникальным.'
+            }
         )
 
 
@@ -20,7 +23,10 @@ def ingredients_exist_validator(
     """Проверяет наличие ингредиентов в запросе."""
     if not value:
         raise ValidationError(
-            'Необходимо указать ингредиенты для создания рецепта.',
+            {
+                'ingredients':
+                'Необходимо указать ингредиенты для создания рецепта.'
+            }
         )
 
 
@@ -36,7 +42,10 @@ def ingredients_unique_validator(
         ingredient_id: int = item.get('ingredient')
         if ingredient_id in seen_ingredients:
             raise ValidationError(
-                'Каждый ингредиент должен быть уникальным.'
+                {
+                    'ingredients':
+                    'Каждый ингредиент должен быть уникальным.'
+                }
             )
         seen_ingredients.add(ingredient_id)
 
@@ -49,4 +58,9 @@ def check_duplicate_recipe(
         request.method in ['POST', 'PATCH']
         and Recipe.objects.filter(author=request.user, name=name)
     ):
-        raise ValidationError('Такой рецепт уже существует.')
+        raise ValidationError(
+                {
+                    'recipe':
+                    'Такой рецепт уже существует.'
+                }
+            )

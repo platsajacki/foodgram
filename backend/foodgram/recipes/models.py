@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from core.models import NameString
+
+more_zero = MinValueValidator(1)
 
 User = get_user_model()
 
@@ -72,11 +75,13 @@ class Recipe(NameString, models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
+        validators=[more_zero]
     )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        unique_together = ('name', 'author',)
 
 
 class RecipeIngredient(models.Model):
@@ -96,11 +101,13 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
+        validators=[more_zero]
     )
 
     class Meta:
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'Ингредиенты рецепта'
+        unique_together = ('recipe', 'ingredient',)
 
     def __str__(self) -> str:
         """

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -5,8 +6,12 @@ from django.db.models import Model
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
-from .fields import Base64ImageField
-from recipes.models import Tag, Ingredient, Recipe
+from .fields import Base64ImageField, IngredientRecipeWriteField
+from .validators import (
+    tags_unique_validator, ingredients_exist_validator,
+    ingredients_unique_validator, check_duplicate_recipe
+)
+from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from users.models import User, Follow, FavouriteRecipe, ShoppingCard
 
 
@@ -70,9 +75,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Ingredient."""
-    ingredients = IngredientSerializer(many=True)
     image = Base64ImageField()
-    tags = TagSerializer(many=True)
+    ingredients = IngredientRecipeWriteField(
+        write_only=True, many=True
+    )
     author = UserCustomSerializer(read_only=True)
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
@@ -114,6 +120,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         """
         return self.relate_user_recipe(obj, ShoppingCard)
 
+    def validate(
+            self, attrs: dict[str, Any]
+    ) -> dict[str, Any] | serializers.ValidationError:
+        """Проверяет входные данные."""
+        check_duplicate_recipe(self.context['request'], attrs['name'])
+        ingredients: list[OrderedDict[str, int]] = attrs.get('ingredients')
+        ingredients_exist_validator(ingredients)
+        ingredients_unique_validator(ingredients)
+        tags_unique_validator(attrs.get('tags'))
+        return attrs
+
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""
         representation: dict[str, str] = super().to_representation(instance)
@@ -128,11 +145,40 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'amount': recipe_ingredient.amount,
             }
             ingredient_data.append(ingredient)
+        tags_data: list[dict] = []
+        for tag in instance.tags.all():
+            tags_data.append(TagSerializer(tag).data)
         representation['ingredients'] = ingredient_data
+        representation['tags'] = tags_data
         return representation
 
-    # def create(self, validated_data: dict[str, Any]):
-    #     return super().create(validated_data)
+    def create(self, validated_data: dict[str, Any]):
+        """
+        Создает новый объект 'Recipe'
+        на основании валидированных данных.
+        """
+        ingredients_data = validated_data.pop('ingredients')
+        tags_data = validated_data.pop('tags')
+        for ingredient_data in ingredients_data:
+            try:
+                ingredient: Ingredient = (
+                    Ingredient.objects
+                    .get(id=ingredient_data['ingredient'])
+                )
+            except Ingredient.DoesNotExist:
+                raise serializers.ValidationError(
+                    'Такого ингредиента не существует.'
+                )
+            ingredient_data['ingredient'] = ingredient
+        recipe: Recipe = Recipe.objects.create(**validated_data)
+        for ingredient_data in ingredients_data:
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient=ingredient_data['ingredient'],
+                amount=ingredient_data['amount'],
+            )
+        recipe.tags.set(tags_data)
+        return recipe
 
     # def update(self, instance: Recipe, validated_data: dict[str, Any]):
     #     return super().update(instance, validated_data)

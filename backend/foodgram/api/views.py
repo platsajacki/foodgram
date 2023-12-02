@@ -2,13 +2,16 @@ from django.db.models import QuerySet
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .filters import RecipeFilterSet
 from .mixins import GetNonePaginatorAllowAny
+from .permissions import IsAuthor
 from .serializers import (
     UserCustomSerializer, TagSerializer,
     IngredientSerializer, RecipeSerializer
@@ -63,8 +66,16 @@ class RecipeViewSet(ModelViewSet):
     """Представление, отвечающее за работу с рецептами."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        IsAuthor
+    ]
     filterset_class = RecipeFilterSet
     http_method_names = [
         'get', 'post',
         'patch', 'delete'
     ]
+
+    def perform_create(self, serializer: RecipeSerializer) -> None:
+        """Создаем рецепт и присваем текущего пользователя."""
+        serializer.save(author=self.request.user)

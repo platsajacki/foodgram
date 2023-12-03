@@ -1,6 +1,13 @@
-from django.db.models import QuerySet
+from datetime import date
+from io import BytesIO
+
+from django.db.models import QuerySet, Sum
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -14,9 +21,13 @@ from .mixins import GetNonePaginatorAllowAny
 from .permissions import IsAuthor
 from .serializers import (
     UserCustomSerializer, TagSerializer,
-    IngredientSerializer, RecipeSerializer
+    IngredientSerializer, RecipeSerializer,
+    ShoppingCardSerializer
 )
+from .utils import get_pdf_shopping_cart
+from .validators import valide_shopping_card
 from recipes.models import Tag, Ingredient, Recipe
+from users.models import ShoppingCard
 
 
 class UserCustomViewSet(UserViewSet):
@@ -79,3 +90,64 @@ class RecipeViewSet(ModelViewSet):
     def perform_create(self, serializer: RecipeSerializer) -> None:
         """Создаем рецепт и присваем текущего пользователя."""
         serializer.save(author=self.request.user)
+
+
+class ShoppingCardViewSet(ModelViewSet):
+    """Представление, отвечающее за работу с корзиной покупок."""
+    queryset = ShoppingCard.objects.all()
+    serializer_class = ShoppingCardSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'delete']
+    lookup_url_kwarg = 'id'
+
+    def get_recipe(self) -> Recipe:
+        """Получает объект рецепта из URL."""
+        return get_object_or_404(
+            Recipe, id=self.kwargs.get('id')
+        )
+
+    def get_object(self) -> ShoppingCard | None:
+        """Получает объект корзины пользователя."""
+        try:
+            return ShoppingCard.objects.filter(
+                user=self.request.user,
+                recipe=self.get_recipe()
+            )
+        except ShoppingCard.DoesNotExist:
+            return None
+
+    def perform_destroy(
+            self, instance: ShoppingCard
+    ) -> None | ValidationError:
+        """Удаляет объект корзины покупок пользователя."""
+        valide_shopping_card(instance)
+        instance.delete()
+
+    def download_shopping_cart(self, request: Request):
+        """
+        Метод для скачивания списка покупок
+        в формате Excel (XLS) при GET запросе.
+        """
+        ingredients: QuerySet = (
+            ShoppingCard.objects
+            .filter(user=request.user)
+            .values(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .annotate(
+                total_amount=Sum(
+                    'recipe__recipeingredient__amount',
+                )
+            )
+            .order_by(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .values(
+                'recipe__recipeingredient__ingredient__measurement_unit',
+                'recipe__recipeingredient__ingredient__name',
+                'total_amount',
+            )
+        )
+        buffer: BytesIO = get_pdf_shopping_cart(ingredients)
+        today: date = timezone.now().date()
+        return FileResponse(buffer, filename=f'Список покупок_{today}.xls')

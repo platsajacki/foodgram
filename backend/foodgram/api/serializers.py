@@ -222,3 +222,72 @@ class RecipeSerializer(serializers.ModelSerializer):
             instance.tags.set(tags_data)
         instance.save()
         return instance
+
+
+class ShoppingCardSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели ShoppingCard."""
+    id = serializers.IntegerField(
+        source='recipe.id', read_only=True
+    )
+    name = serializers.CharField(
+        source='recipe.name', read_only=True
+    )
+    image = Base64ImageField(
+        source='recipe.image', read_only=True
+    )
+    cooking_time = serializers.IntegerField(
+        source='recipe.cooking_time', read_only=True
+    )
+
+    class Meta:
+        model = ShoppingCard
+        fields = (
+            'id', 'name',
+            'image', 'cooking_time',
+        )
+
+    def validate(
+            self, attrs: dict[str, Any]
+    ) -> dict[str, Any] | serializers.ValidationError:
+        """
+        Проверяет входные данные,
+        проверяет рецепт и добавляет его к 'attrs'.
+        """
+        id: int = (
+            self.context['request']
+            .parser_context.get('kwargs')
+            .get('id')
+        )
+        method: str = self.context['request'].method
+        try:
+            recipe: Recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            raise serializers.ValidationError(
+                {
+                    'recipe': 'Такого рецепта не существует.'
+                }
+            )
+        shoping_card_exists: ShoppingCard = (
+            ShoppingCard.objects.filter(
+                user=self.context['request'].user,
+                recipe=recipe
+            ).exists()
+        )
+        if method == 'POST' and shoping_card_exists:
+            raise serializers.ValidationError(
+                {
+                    'shopping_card': 'Рецепт уже есть в списке покупок.'
+                }
+            )
+        attrs['recipe'] = recipe
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> ShoppingCard:
+        """
+        Создает новый объект 'ShoppingCard'
+        на основании валидированных данных.
+        """
+        return ShoppingCard.objects.create(
+            user=self.context['request'].user,
+            recipe=validated_data['recipe']
+        )

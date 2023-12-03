@@ -1,5 +1,10 @@
-from django.db.models import QuerySet
+from datetime import date
+from io import BytesIO
+
+from django.db.models import QuerySet, Sum
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -19,6 +24,7 @@ from .serializers import (
     IngredientSerializer, RecipeSerializer,
     ShoppingCardSerializer
 )
+from .utils import get_pdf_shopping_cart
 from .validators import valide_shopping_card
 from recipes.models import Tag, Ingredient, Recipe
 from users.models import ShoppingCard
@@ -116,3 +122,32 @@ class ShoppingCardViewSet(ModelViewSet):
         """Удаляет объект корзины покупок пользователя."""
         valide_shopping_card(instance)
         instance.delete()
+
+    def download_shopping_cart(self, request: Request):
+        """
+        Метод для скачивания списка покупок
+        в формате Excel (XLS) при GET запросе.
+        """
+        ingredients: QuerySet = (
+            ShoppingCard.objects
+            .filter(user=request.user)
+            .values(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .annotate(
+                total_amount=Sum(
+                    'recipe__recipeingredient__amount',
+                )
+            )
+            .order_by(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .values(
+                'recipe__recipeingredient__ingredient__measurement_unit',
+                'recipe__recipeingredient__ingredient__name',
+                'total_amount',
+            )
+        )
+        buffer: BytesIO = get_pdf_shopping_cart(ingredients)
+        today: date = timezone.now().date()
+        return FileResponse(buffer, filename=f'Список покупок_{today}.xls')

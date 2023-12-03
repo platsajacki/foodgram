@@ -30,11 +30,12 @@ router.register(
 )
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
     path(
         'recipes/download_shopping_cart/',
-        ShoppingCardViewSet.as_view({'get': 'list'}),
+        ShoppingCardViewSet.as_view(
+            {'get': 'download_shopping_cart'}
+        ),
         name='download_shopping_cart'
     ),
     path(
@@ -44,4 +45,5 @@ urlpatterns = [
         ),
         name='shopping_cart'
     ),
+    path('', include(router.urls)),
 ]

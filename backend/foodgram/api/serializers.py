@@ -3,7 +3,6 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Model
-from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
@@ -260,7 +259,14 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
             .get('id')
         )
         method: str = self.context['request'].method
-        recipe: Recipe = get_object_or_404(Recipe, id=id)
+        try:
+            recipe: Recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            raise serializers.ValidationError(
+                {
+                    'recipe': 'Такого рецепта не существует.'
+                }
+            )
         shoping_card_exists: ShoppingCard = (
             ShoppingCard.objects.filter(
                 user=self.context['request'].user,

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'recipes',
     'users',
 
+    'django_filters',
     'djoser',
     'rest_framework',
     'rest_framework.authtoken',
@@ -105,6 +106,9 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': (
         'rest_framework.pagination.LimitOffsetPagination'
+    ),
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'PAGE_SIZE': 10,
 }

@@ -4,6 +4,7 @@ from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
 from recipes.models import Tag, Recipe, Ingredient
+from users.models import ShoppingCard
 
 
 def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
@@ -93,3 +94,15 @@ def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
             }
         )
     return ingredient
+
+
+def valide_shopping_card(
+        shoping_card: ShoppingCard | None
+) -> ValidationError | None:
+    """Проверяет наличие рецепта в корзине покупок."""
+    if not shoping_card:
+        raise ValidationError(
+            {
+                'shopping_card': 'Рецепта не было в списке покупок.'
+            }
+        )

@@ -9,7 +9,8 @@ from rest_framework import serializers
 from .fields import Base64ImageField, IngredientRecipeWriteField
 from .validators import (
     tags_unique_validator, ingredients_exist_validator,
-    ingredients_unique_validator, check_duplicate_recipe
+    ingredients_unique_validator, check_duplicate_recipe,
+    get_ingredient_or_400, tags_exist_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from users.models import User, Follow, FavouriteRecipe, ShoppingCard
@@ -124,11 +125,17 @@ class RecipeSerializer(serializers.ModelSerializer):
             self, attrs: dict[str, Any]
     ) -> dict[str, Any] | serializers.ValidationError:
         """Проверяет входные данные."""
-        check_duplicate_recipe(self.context['request'], attrs['name'])
+        instance: Recipe | None = self.instance
+        check_duplicate_recipe(
+            self.context['request'],
+            attrs['name'], instance
+        )
         ingredients: list[OrderedDict[str, int]] = attrs.get('ingredients')
         ingredients_exist_validator(ingredients)
         ingredients_unique_validator(ingredients)
-        tags_unique_validator(attrs.get('tags'))
+        tags: list[Tag] = attrs.get('tags')
+        tags_exist_validator(tags)
+        tags_unique_validator(tags)
         return attrs
 
     def to_representation(self, instance: Recipe) -> dict[str, str]:
@@ -157,38 +164,61 @@ class RecipeSerializer(serializers.ModelSerializer):
         Создает новый объект 'Recipe'
         на основании валидированных данных.
         """
-        ingredients_data = validated_data.pop('ingredients')
-        tags_data = validated_data.pop('tags')
+        ingredients_data: list[OrderedDict[str, int]] = (
+            validated_data.pop('ingredients')
+        )
+        tags_data: list[Tag] = validated_data.pop('tags')
         for ingredient_data in ingredients_data:
-            try:
-                ingredient: Ingredient = (
-                    Ingredient.objects
-                    .get(id=ingredient_data['ingredient'])
-                )
-            except Ingredient.DoesNotExist:
-                raise serializers.ValidationError(
-                    {
-                        'ingredients': 'Такого ингредиента не существует.'
-                    }
-                )
-            ingredient_data['ingredient'] = ingredient
+            ingredient_data['ingredient'] = (
+                get_ingredient_or_400(ingredient_data['ingredient'])
+            )
         recipe: Recipe = Recipe.objects.create(**validated_data)
-        for ingredient_data in ingredients_data:
-            RecipeIngredient.objects.create(
+        recipe_ingredients = [
+            RecipeIngredient(
                 recipe=recipe,
                 ingredient=ingredient_data['ingredient'],
                 amount=ingredient_data['amount'],
             )
+            for ingredient_data in ingredients_data
+        ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
         recipe.tags.set(tags_data)
         return recipe
 
-    # def update(
-    #         self, instance: Recipe, validated_data: dict[str, Any]
-    # ) -> Recipe:
-    #     instance.name = validated_data.get('name', instance.name)
-    #     instance.text = validated_data.get('text', instance.text)
-    #     instance.cooking_time = validated_data.get(
-    #         'cooking_time',
-    #         instance.cooking_time
-    #     )
-    #     instance.image = validated_data.get('image', instance.image)
+    def update(
+            self, instance: Recipe, validated_data: dict[str, Any]
+    ) -> Recipe:
+        """
+        Обновляет объект 'Recipe'
+        на основании валидированных данных.
+        """
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = (
+            validated_data.get('cooking_time', instance.cooking_time)
+        )
+        instance.image = validated_data.get('image', instance.image)
+        ingredients_data: list[OrderedDict[str, int]] = (
+            validated_data.get('ingredients')
+        )
+        if ingredients_data:
+            recipe_ingredients = []
+            for ingredient_data in ingredients_data:
+                ingredient: Ingredient = (
+                    get_ingredient_or_400(ingredient_data['ingredient'])
+                )
+                recipe_ingredients.append(
+                    RecipeIngredient(
+                        recipe=instance,
+                        ingredient=ingredient,
+                        amount=ingredient_data['amount'],
+                    )
+                )
+            RecipeIngredient.objects.filter(recipe=instance).delete()
+            RecipeIngredient.objects.bulk_create(recipe_ingredients)
+        tags_data: list[Tag] = validated_data.get('tags')
+        if tags_data:
+            instance.tags.clear()
+            instance.tags.set(tags_data)
+        instance.save()
+        return instance

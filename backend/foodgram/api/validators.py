@@ -3,7 +3,7 @@ from collections import OrderedDict
 from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
-from recipes.models import Tag, Recipe
+from recipes.models import Tag, Recipe, Ingredient
 
 
 def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
@@ -13,6 +13,17 @@ def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
             {
                 'tags':
                 'Каждый тег должен быть уникальным.'
+            }
+        )
+
+
+def tags_exist_validator(value: list[Tag]) -> None | ValidationError:
+    """Проверяет наличие ингредиентов в запросе."""
+    if not value:
+        raise ValidationError(
+            {
+                'tags':
+                'Необходимо указать тег(и) для создания рецепта.'
             }
         )
 
@@ -51,16 +62,34 @@ def ingredients_unique_validator(
 
 
 def check_duplicate_recipe(
-        request: Request, name: str
+        request: Request, name: str, instance: Recipe | None
 ) -> None | ValidationError:
     """Проверка рецептов на дублирование."""
-    if (
-        request.method in ['POST', 'PATCH']
-        and Recipe.objects.filter(author=request.user, name=name)
-    ):
+    error: ValidationError = ValidationError(
+        {
+            'recipe':
+            'У Вас уже существует рецепт с таким названием.'
+        }
+    )
+    if request.method in ['POST', 'PATCH']:
+        recipe: Recipe = Recipe.objects.filter(author=request.user, name=name)
+        if instance and recipe.exclude(id=instance.id).exists():
+            raise error
+        if recipe.exists():
+            raise error
+
+
+def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
+    """
+    Получает объект ингредиента по его ID
+    или вызывает 'ValidationError', если объекта не существует.
+    """
+    try:
+        ingredient: Ingredient = Ingredient.objects.get(id=id)
+    except Ingredient.DoesNotExist:
         raise ValidationError(
-                {
-                    'recipe':
-                    'Такой рецепт уже существует.'
-                }
-            )
+            {
+                'ingredients': 'Такого ингредиента не существует.'
+            }
+        )
+    return ingredient

@@ -10,7 +10,8 @@ from .fields import Base64ImageField, IngredientRecipeWriteField
 from .validators import (
     tags_unique_validator, ingredients_exist_validator,
     ingredients_unique_validator, check_duplicate_recipe,
-    get_ingredient_or_400, tags_exist_validator
+    get_ingredient_or_400, tags_exist_validator,
+    recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from users.models import User, Follow, FavouriteRecipe, ShoppingCard
@@ -253,32 +254,11 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
         Проверяет входные данные,
         проверяет рецепт и добавляет его к 'attrs'.
         """
-        id: int = (
-            self.context['request']
-            .parser_context.get('kwargs')
-            .get('id')
+        recipe: Recipe = recipe_exist_validator(self.context['request'])
+        post_request_user_recipe_validator(
+            ShoppingCard, self.context['request'].method,
+            recipe, self.context['request'].user
         )
-        method: str = self.context['request'].method
-        try:
-            recipe: Recipe = Recipe.objects.get(id=id)
-        except Recipe.DoesNotExist:
-            raise serializers.ValidationError(
-                {
-                    'recipe': 'Такого рецепта не существует.'
-                }
-            )
-        shoping_card_exists: ShoppingCard = (
-            ShoppingCard.objects.filter(
-                user=self.context['request'].user,
-                recipe=recipe
-            ).exists()
-        )
-        if method == 'POST' and shoping_card_exists:
-            raise serializers.ValidationError(
-                {
-                    'shopping_card': 'Рецепт уже есть в списке покупок.'
-                }
-            )
         attrs['recipe'] = recipe
         return attrs
 
@@ -288,6 +268,54 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
         на основании валидированных данных.
         """
         return ShoppingCard.objects.create(
+            user=self.context['request'].user,
+            recipe=validated_data['recipe']
+        )
+
+
+class FavouriteRecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели FavouriteRecipe."""
+    id = serializers.IntegerField(
+        source='recipe.id', read_only=True
+    )
+    name = serializers.CharField(
+        source='recipe.name', read_only=True
+    )
+    image = Base64ImageField(
+        source='recipe.image', read_only=True
+    )
+    cooking_time = serializers.IntegerField(
+        source='recipe.cooking_time', read_only=True
+    )
+
+    class Meta:
+        model = FavouriteRecipe
+        fields = (
+            'id', 'name',
+            'image', 'cooking_time',
+        )
+
+    def validate(
+            self, attrs: dict[str, Any]
+    ) -> dict[str, Any] | serializers.ValidationError:
+        """
+        Проверяет входные данные,
+        проверяет рецепт и добавляет его к 'attrs'.
+        """
+        recipe: Recipe = recipe_exist_validator(self.context['request'])
+        post_request_user_recipe_validator(
+            FavouriteRecipe, self.context['request'].method,
+            recipe, self.context['request'].user
+        )
+        attrs['recipe'] = recipe
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> FavouriteRecipe:
+        """
+        Создает новый объект 'FavouriteRecipe'
+        на основании валидированных данных.
+        """
+        return FavouriteRecipe.objects.create(
             user=self.context['request'].user,
             recipe=validated_data['recipe']
         )

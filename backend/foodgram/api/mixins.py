@@ -1,4 +1,11 @@
-from rest_framework.permissions import AllowAny
+from django.db.models import Model
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+from recipes.models import Recipe
+from rest_framework.exceptions import ValidationError
+
+from .validators import valide_user_has_recipe
 
 
 class GetNonePaginatorAllowAny:
@@ -9,3 +16,23 @@ class GetNonePaginatorAllowAny:
     pagination_class = None
     http_method_names = ['get',]
     permission_classes = [AllowAny,]
+
+
+class UserRecipeViewSet:
+    """
+    Миксин для представлений, связанных с рецептами пользователя.
+    Предоставляет общие методы для получения рецепта из URL и удаления рецепта.
+    """
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'id'
+
+    def get_recipe(self) -> Recipe:
+        """Получает объект рецепта из URL."""
+        return get_object_or_404(
+            Recipe, id=self.kwargs.get('id')
+        )
+
+    def perform_destroy(self, instance: Model) -> None | ValidationError:
+        """Удаляет объект объект связанной модели пользователя."""
+        valide_user_has_recipe(instance)
+        instance.delete()

@@ -3,9 +3,11 @@ from io import BytesIO
 
 from django.db.models import QuerySet, Sum
 from django.http import FileResponse
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -20,11 +22,13 @@ from .permissions import IsAuthor
 from .serializers import (
     UserCustomSerializer, TagSerializer,
     IngredientSerializer, RecipeSerializer,
-    ShoppingCardSerializer, FavouriteRecipeSerializer
+    ShoppingCardSerializer, FavouriteRecipeSerializer,
+    FollowSerializer
 )
-from .utils import get_pdf_shopping_cart
+from .validators import valide_follow_exists
+from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
-from users.models import ShoppingCard, FavouriteRecipe
+from users.models import User, ShoppingCard, FavouriteRecipe, Follow
 
 
 class UserCustomViewSet(UserViewSet):
@@ -120,7 +124,7 @@ class ShoppingCardViewSet(UserRecipeViewSet, ModelViewSet):
                 'total_amount',
             )
         )
-        buffer: BytesIO = get_pdf_shopping_cart(ingredients)
+        buffer: BytesIO = get_xls_shopping_cart(ingredients)
         today: date = timezone.now().date()
         return FileResponse(buffer, filename=f'Список покупок_{today}.xls')
 
@@ -130,3 +134,48 @@ class FavouriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
     queryset = FavouriteRecipe.objects.all()
     serializer_class = FavouriteRecipeSerializer
     http_method_names = ['post', 'delete']
+
+
+class FollowViewSet(ModelViewSet):
+    """Представление, отвечающее за работу с подписками."""
+    serializer_class = FollowSerializer
+    http_method_names = ['get', 'post', 'delete']
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self) -> QuerySet:
+        """
+        Возвращает QuerySet объектов Follow,
+        связанных с запрашивающим пользователем.
+        """
+        return (
+            Follow.objects
+            .filter(user=self.request.user)
+            .prefetch_related('following__recipes')
+            .all()
+        )
+
+    def get_following(self) -> User:
+        """Получает подписку."""
+        return get_object_or_404(
+            User, id=self.kwargs.get('id')
+        )
+
+    def get_object(self) -> Follow:
+        """Получает объект связанной модели подписки."""
+        try:
+            return (
+                Follow.objects
+                .get(
+                    user=self.request.user,
+                    following=self.get_following()
+                )
+            )
+        except Follow.DoesNotExist:
+            return None
+
+    def perform_destroy(
+            self, instance: Follow
+    ) -> None | ValidationError:
+        """Удаляет объект."""
+        valide_follow_exists(instance)
+        instance.delete()

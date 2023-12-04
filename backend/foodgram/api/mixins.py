@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from .fields import Base64ImageField
 from .validators import valide_user_has_recipe
+from users.models import User, Follow
 
 
 class GetNonePaginatorAllowAny:
@@ -38,7 +40,7 @@ class UserRecipeViewSet:
     def get_object(self) -> Model | None:
         """Получает объект связанной модели пользователя."""
         try:
-            return self.queryset.model.objects.filter(
+            return self.queryset.model.objects.get(
                 user=self.request.user,
                 recipe=self.get_recipe()
             )
@@ -68,3 +70,27 @@ class UserRecipeFieldsSet(serializers.Serializer):
     cooking_time = serializers.IntegerField(
         source='recipe.cooking_time', read_only=True
     )
+
+
+class SubscribedMethodField(serializers.Serializer):
+    """
+    Миксин сериализатора с методом,
+    отвечающим за получение поля 'is_subscribed'.
+    """
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
+
+    def _get_is_subscribed(self, obj: User) -> bool:
+        """
+        Определяет подаписан ли запрашиваемый пользователь на текущего.
+        В случае, если пользователь анонимный, возвращается 'False'.
+        """
+        current_user: User = self.context['request'].user
+        if isinstance(current_user, AnonymousUser):
+            return False
+        return (
+            Follow.objects
+            .filter(
+                user=current_user,
+                following=obj
+            ).exists()
+        )

@@ -5,7 +5,7 @@ from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
 from recipes.models import Tag, Recipe, Ingredient
-from users.models import User
+from users.models import User, Follow
 
 
 def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
@@ -147,5 +147,15 @@ def post_request_user_recipe_validator(
         raise ValidationError(
             {
                 'recipe': 'Этот рецепт уже добавлен.'
+            }
+        )
+
+
+def valide_follow_exists(instance: Follow | None) -> ValidationError | None:
+    """Проверяет наличие подписки в у пользователя."""
+    if not instance:
+        raise ValidationError(
+            {
+                'follow': 'Вы не были подписаны на данного пользователя.'
             }
         )

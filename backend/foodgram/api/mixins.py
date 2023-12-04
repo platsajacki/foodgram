@@ -3,8 +3,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from recipes.models import Recipe
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from .fields import Base64ImageField
 from .validators import valide_user_has_recipe
 
 
@@ -47,3 +49,22 @@ class UserRecipeViewSet:
         """Удаляет объект объект связанной модели пользователя."""
         valide_user_has_recipe(instance)
         instance.delete()
+
+
+class UserRecipeFieldsSet(serializers.Serializer):
+    """
+    Миксин сериализатора для извлечения
+    ID, название, изображение и время приготовления экземпляра рецепта.
+    """
+    id = serializers.IntegerField(
+        source='recipe.id', read_only=True
+    )
+    name = serializers.CharField(
+        source='recipe.name', read_only=True
+    )
+    image = Base64ImageField(
+        source='recipe.image', read_only=True
+    )
+    cooking_time = serializers.IntegerField(
+        source='recipe.cooking_time', read_only=True
+    )

@@ -7,6 +7,7 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from .fields import Base64ImageField, IngredientRecipeWriteField
+from .mixins import UserRecipeFieldsSet
 from .validators import (
     tags_unique_validator, ingredients_exist_validator,
     ingredients_unique_validator, check_duplicate_recipe,
@@ -225,21 +226,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ShoppingCardSerializer(serializers.ModelSerializer):
+class ShoppingCardSerializer(UserRecipeFieldsSet,
+                             serializers.ModelSerializer):
     """Сериализатор для модели ShoppingCard."""
-    id = serializers.IntegerField(
-        source='recipe.id', read_only=True
-    )
-    name = serializers.CharField(
-        source='recipe.name', read_only=True
-    )
-    image = Base64ImageField(
-        source='recipe.image', read_only=True
-    )
-    cooking_time = serializers.IntegerField(
-        source='recipe.cooking_time', read_only=True
-    )
-
     class Meta:
         model = ShoppingCard
         fields = (
@@ -273,21 +262,9 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
         )
 
 
-class FavouriteRecipeSerializer(serializers.ModelSerializer):
+class FavouriteRecipeSerializer(UserRecipeFieldsSet,
+                                serializers.ModelSerializer):
     """Сериализатор для модели FavouriteRecipe."""
-    id = serializers.IntegerField(
-        source='recipe.id', read_only=True
-    )
-    name = serializers.CharField(
-        source='recipe.name', read_only=True
-    )
-    image = Base64ImageField(
-        source='recipe.image', read_only=True
-    )
-    cooking_time = serializers.IntegerField(
-        source='recipe.cooking_time', read_only=True
-    )
-
     class Meta:
         model = FavouriteRecipe
         fields = (

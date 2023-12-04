@@ -95,16 +95,6 @@ class ShoppingCardViewSet(UserRecipeViewSet, ModelViewSet):
     serializer_class = ShoppingCardSerializer
     http_method_names = ['get', 'post', 'delete']
 
-    def get_object(self) -> ShoppingCard | None:
-        """Получает объект корзины пользователя."""
-        try:
-            return ShoppingCard.objects.filter(
-                user=self.request.user,
-                recipe=self.get_recipe()
-            )
-        except ShoppingCard.DoesNotExist:
-            return None
-
     def download_shopping_cart(self, request: Request):
         """
         Метод для скачивания списка покупок
@@ -140,13 +130,3 @@ class FavouriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
     queryset = FavouriteRecipe.objects.all()
     serializer_class = FavouriteRecipeSerializer
     http_method_names = ['post', 'delete']
-
-    def get_object(self) -> FavouriteRecipe | None:
-        """Получает объект корзины пользователя."""
-        try:
-            return FavouriteRecipe.objects.filter(
-                user=self.request.user,
-                recipe=self.get_recipe()
-            )
-        except FavouriteRecipe.DoesNotExist:
-            return None

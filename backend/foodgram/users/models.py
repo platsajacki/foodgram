@@ -43,7 +43,7 @@ class User(AbstractUser):
     )
     shopping_cart = models.ManyToManyField(
         'recipes.Recipe',
-        through='ShoppingCard',
+        through='ShoppingCart',
         related_name='user_shopping_cart',
         verbose_name='Корзина',
     )
@@ -104,7 +104,7 @@ class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
         return f'Избранное {self.user.first_name} {self.user.last_name}'
 
 
-class ShoppingCard(UserRecipe, DateAdded, models.Model):
+class ShoppingCart(UserRecipe, DateAdded, models.Model):
     """
     Промежуточная модель для хранения связи
     пользователя и рецептов в его корзине.

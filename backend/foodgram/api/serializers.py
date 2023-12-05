@@ -15,7 +15,7 @@ from .validators import (
     recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
-from users.models import User, FavouriteRecipe, ShoppingCard, Follow
+from users.models import User, FavouriteRecipe, ShoppingCart, Follow
 
 
 class UserCustomCreateSerializer(UserCreateSerializer):
@@ -107,7 +107,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         Получает информацию, находится ли переданный рецепт
         в списке покупок текущего пользователя.
         """
-        return self.relate_user_recipe(obj.shoppingcard_set)
+        return self.relate_user_recipe(obj.shoppingcart_set)
 
     def validate(
             self, attrs: dict[str, Any]
@@ -226,11 +226,11 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         )
 
 
-class ShoppingCardSerializer(UserRecipeFieldsSet,
+class ShoppingCartSerializer(UserRecipeFieldsSet,
                              serializers.ModelSerializer):
-    """Сериализатор для модели ShoppingCard."""
+    """Сериализатор для модели ShoppingCart."""
     class Meta:
-        model = ShoppingCard
+        model = ShoppingCart
         fields = (
             'id', 'name',
             'image', 'cooking_time',
@@ -245,18 +245,18 @@ class ShoppingCardSerializer(UserRecipeFieldsSet,
         """
         recipe: Recipe = recipe_exist_validator(self.context['request'])
         post_request_user_recipe_validator(
-            ShoppingCard, self.context['request'].method,
+            ShoppingCart, self.context['request'].method,
             recipe, self.context['request'].user
         )
         attrs['recipe'] = recipe
         return attrs
 
-    def create(self, validated_data: dict[str, Any]) -> ShoppingCard:
+    def create(self, validated_data: dict[str, Any]) -> ShoppingCart:
         """
-        Создает новый объект 'ShoppingCard'
+        Создает новый объект 'ShoppingCart'
         на основании валидированных данных.
         """
-        return ShoppingCard.objects.create(
+        return ShoppingCart.objects.create(
             user=self.context['request'].user,
             recipe=validated_data['recipe']
         )

@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     UserCustomViewSet, TagViewSet,
     IngredientViewSet, RecipeViewSet,
-    ShoppingCardViewSet, FavouriteRecipeViewSet,
+    ShoppingCartViewSet, FavouriteRecipeViewSet,
     FollowViewSet
 )
 
@@ -34,14 +34,14 @@ urlpatterns = [
     path('auth/', include('djoser.urls.authtoken')),
     path(
         'recipes/download_shopping_cart/',
-        ShoppingCardViewSet.as_view(
+        ShoppingCartViewSet.as_view(
             {'get': 'download_shopping_cart'}
         ),
         name='download_shopping_cart'
     ),
     path(
         'recipes/<int:id>/shopping_cart/',
-        ShoppingCardViewSet.as_view(
+        ShoppingCartViewSet.as_view(
             {'post': 'create', 'delete': 'destroy'}
         ),
         name='shopping_cart'

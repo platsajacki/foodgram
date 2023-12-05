@@ -22,13 +22,13 @@ from .permissions import IsAuthor
 from .serializers import (
     UserCustomSerializer, TagSerializer,
     IngredientSerializer, RecipeSerializer,
-    ShoppingCardSerializer, FavouriteRecipeSerializer,
+    ShoppingCartSerializer, FavouriteRecipeSerializer,
     FollowSerializer
 )
 from .validators import valide_follow_exists
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
-from users.models import User, ShoppingCard, FavouriteRecipe, Follow
+from users.models import User, ShoppingCart, FavouriteRecipe, Follow
 
 
 class UserCustomViewSet(UserViewSet):
@@ -54,7 +54,6 @@ class TagViewSet(GetNonePaginatorAllowAny, ModelViewSet):
 
 class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
     """Представление, отвечающее за работу с ингредиентами."""
-    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = [SearchFilter]
     search_fields = ['name']
@@ -64,7 +63,7 @@ class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
         Получает QuerySet.
         Если указан параметр 'name', фильтрует по имени.
         """
-        queryset: QuerySet = super().get_queryset()
+        queryset: QuerySet = Ingredient.objects.all()
         name_param: str = self.request.query_params.get('name')
         if name_param:
             queryset: QuerySet = (
@@ -93,10 +92,10 @@ class RecipeViewSet(ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class ShoppingCardViewSet(UserRecipeViewSet, ModelViewSet):
+class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
     """Представление, отвечающее за работу с корзиной покупок."""
-    queryset = ShoppingCard.objects.all()
-    serializer_class = ShoppingCardSerializer
+    queryset = ShoppingCart.objects.all()
+    serializer_class = ShoppingCartSerializer
     http_method_names = ['get', 'post', 'delete']
 
     def download_shopping_cart(self, request: Request):
@@ -105,7 +104,7 @@ class ShoppingCardViewSet(UserRecipeViewSet, ModelViewSet):
         в формате Excel (XLS) при GET запросе.
         """
         ingredients: QuerySet = (
-            ShoppingCard.objects
+            ShoppingCart.objects
             .filter(user=request.user)
             .values(
                 'recipe__recipeingredient__ingredient__name',

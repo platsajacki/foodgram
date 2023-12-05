@@ -7,13 +7,15 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from .fields import Base64ImageField, IngredientRecipeWriteField
+from .mixins import UserRecipeFieldsSet, SubscribedMethodField
 from .validators import (
     tags_unique_validator, ingredients_exist_validator,
     ingredients_unique_validator, check_duplicate_recipe,
-    get_ingredient_or_400, tags_exist_validator
+    get_ingredient_or_400, tags_exist_validator,
+    recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
-from users.models import User, Follow, FavouriteRecipe, ShoppingCard
+from users.models import User, FavouriteRecipe, ShoppingCard, Follow
 
 
 class UserCustomCreateSerializer(UserCreateSerializer):
@@ -30,28 +32,16 @@ class UserCustomCreateSerializer(UserCreateSerializer):
         return value
 
 
-class UserCustomSerializer(UserSerializer):
+class UserCustomSerializer(SubscribedMethodField, UserSerializer):
     """Сериализатор для модели User."""
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
-
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ('is_subscribed',)
 
-    def get_is_subscribed(self, obj: User) -> bool:
+    def get_is_subscribed(self, obj: Follow) -> bool:
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
-        В случае, если пользователь анонимный, возвращается 'False'.
         """
-        current_user: User = self.context['request'].user
-        if isinstance(current_user, AnonymousUser):
-            return False
-        return (
-            Follow.objects
-            .filter(
-                user=current_user,
-                following=obj
-            ).exists()
-        )
+        return self._get_is_subscribed(obj)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -224,21 +214,23 @@ class RecipeSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ShoppingCardSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели ShoppingCard."""
-    id = serializers.IntegerField(
-        source='recipe.id', read_only=True
-    )
-    name = serializers.CharField(
-        source='recipe.name', read_only=True
-    )
-    image = Base64ImageField(
-        source='recipe.image', read_only=True
-    )
-    cooking_time = serializers.IntegerField(
-        source='recipe.cooking_time', read_only=True
-    )
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    """Сокращенный сериализатор для модели Ingredient."""
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'name',
+            'image', 'cooking_time',
+        )
+        read_only_fields = (
+            'id', 'name',
+            'image', 'cooking_time',
+        )
 
+
+class ShoppingCardSerializer(UserRecipeFieldsSet,
+                             serializers.ModelSerializer):
+    """Сериализатор для модели ShoppingCard."""
     class Meta:
         model = ShoppingCard
         fields = (
@@ -253,32 +245,11 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
         Проверяет входные данные,
         проверяет рецепт и добавляет его к 'attrs'.
         """
-        id: int = (
-            self.context['request']
-            .parser_context.get('kwargs')
-            .get('id')
+        recipe: Recipe = recipe_exist_validator(self.context['request'])
+        post_request_user_recipe_validator(
+            ShoppingCard, self.context['request'].method,
+            recipe, self.context['request'].user
         )
-        method: str = self.context['request'].method
-        try:
-            recipe: Recipe = Recipe.objects.get(id=id)
-        except Recipe.DoesNotExist:
-            raise serializers.ValidationError(
-                {
-                    'recipe': 'Такого рецепта не существует.'
-                }
-            )
-        shoping_card_exists: ShoppingCard = (
-            ShoppingCard.objects.filter(
-                user=self.context['request'].user,
-                recipe=recipe
-            ).exists()
-        )
-        if method == 'POST' and shoping_card_exists:
-            raise serializers.ValidationError(
-                {
-                    'shopping_card': 'Рецепт уже есть в списке покупок.'
-                }
-            )
         attrs['recipe'] = recipe
         return attrs
 
@@ -291,3 +262,136 @@ class ShoppingCardSerializer(serializers.ModelSerializer):
             user=self.context['request'].user,
             recipe=validated_data['recipe']
         )
+
+
+class FavouriteRecipeSerializer(UserRecipeFieldsSet,
+                                serializers.ModelSerializer):
+    """Сериализатор для модели FavouriteRecipe."""
+    class Meta:
+        model = FavouriteRecipe
+        fields = (
+            'id', 'name',
+            'image', 'cooking_time',
+        )
+
+    def validate(
+            self, attrs: dict[str, Any]
+    ) -> dict[str, Any] | serializers.ValidationError:
+        """
+        Проверяет входные данные,
+        проверяет рецепт и добавляет его к 'attrs'.
+        """
+        recipe: Recipe = recipe_exist_validator(self.context['request'])
+        post_request_user_recipe_validator(
+            FavouriteRecipe, self.context['request'].method,
+            recipe, self.context['request'].user
+        )
+        attrs['recipe'] = recipe
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> FavouriteRecipe:
+        """
+        Создает новый объект 'FavouriteRecipe'
+        на основании валидированных данных.
+        """
+        return FavouriteRecipe.objects.create(
+            user=self.context['request'].user,
+            recipe=validated_data['recipe']
+        )
+
+
+class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
+    """Сериализатор для модели Follow."""
+    id = serializers.IntegerField(
+        source='following.id', read_only=True
+    )
+    username = serializers.CharField(
+        source='following.username', read_only=True
+    )
+    first_name = serializers.CharField(
+        source='following.first_name', read_only=True
+    )
+    last_name = serializers.CharField(
+        source='following.last_name', read_only=True
+    )
+    email = serializers.EmailField(
+        source='following.email', read_only=True
+    )
+    recipes = ShortRecipeSerializer(
+        source='following.recipes',
+        many=True, read_only=True
+    )
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Follow
+        fields = (
+            'id', 'email', 'username', 'first_name',
+            'last_name', 'recipes', 'recipes_count',
+            'is_subscribed'
+        )
+
+    def get_is_subscribed(self, obj: Follow) -> bool:
+        """
+        Определяет подаписан ли запрашиваемый пользователь на текущего.
+        """
+        return self._get_is_subscribed(obj.following)
+
+    def get_recipes_count(self, obj: Follow) -> int:
+        """Считает количество рецептов у подписки."""
+        return (
+            self.context['view']
+            .get_queryset()
+            .filter(following=obj.following)
+            .values('following__recipes')
+            .exclude(following__recipes__isnull=True)
+            .count()
+        )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Проверяет валидность данных перед созданием объекта Follow.
+        """
+        user: User = self.context['request'].user
+        following: User = self.context['view'].get_following()
+        if user.id == following.id:
+            raise serializers.ValidationError(
+                {
+                    'follow': 'На себя подписаться нельзя.'
+                }
+            )
+        if Follow.objects.filter(
+            user=user, following=following
+        ).exists():
+            raise serializers.ValidationError(
+                {
+                    'follow': 'Вы уже подписаны на этого пользователя.'
+                }
+            )
+        attrs['user'] = user
+        attrs['following'] = following
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> Follow:
+        """
+        Создает объект Follow на основе проверенных данных.
+        """
+        return Follow.objects.create(
+            user=validated_data['user'],
+            following=validated_data['following']
+        )
+
+    def to_representation(self, instance: Follow) -> dict[str, Any]:
+        """
+        Метода для изменения представления экземпляров Follow
+        с ограничением по количеству рецептов (если применимо).
+        """
+        data: dict[str, Any] = super().to_representation(instance)
+        recipes_limit: str | None = (
+            self.context['request']
+            .query_params.get('recipes_limit')
+        )
+        recipes: list[OrderedDict[Recipe]] = data['recipes']
+        if recipes_limit and recipes and len(recipes) > int(recipes_limit):
+            data['recipes'] = recipes[:int(recipes_limit)]
+        return data

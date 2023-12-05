@@ -3,10 +3,10 @@ from io import BytesIO
 from django.db.models import QuerySet
 from openpyxl import Workbook
 
-from openpyxl_style import header_style, body_style
+from openpyxl_styles import header_style, body_style
 
 
-def get_pdf_shopping_cart(ingredients: QuerySet) -> BytesIO:
+def get_xls_shopping_cart(ingredients: QuerySet) -> BytesIO:
     """
     Функция для создания файла Excel (XLS)
     со списком покупок на основе переданных ингредиентов.

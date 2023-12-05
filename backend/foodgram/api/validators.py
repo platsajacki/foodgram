@@ -1,10 +1,11 @@
 from collections import OrderedDict
 
+from django.db.models import Model
 from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
 from recipes.models import Tag, Recipe, Ingredient
-from users.models import ShoppingCard
+from users.models import User, Follow
 
 
 def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
@@ -96,13 +97,65 @@ def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
     return ingredient
 
 
-def valide_shopping_card(
-        shoping_card: ShoppingCard | None
+def valide_user_has_recipe(
+        related_model: Model | None
 ) -> ValidationError | None:
-    """Проверяет наличие рецепта в корзине покупок."""
-    if not shoping_card:
+    """Проверяет наличие рецепта в у пользователя."""
+    if not related_model:
         raise ValidationError(
             {
-                'shopping_card': 'Рецепта не было в списке покупок.'
+                'recipe': 'Рецепт не был ранее добавлен.'
+            }
+        )
+
+
+def recipe_exist_validator(request: Request) -> Recipe | ValidationError:
+    """
+    Проверяет наличие рецепта в базе и возвращает его или ValidationError.
+    """
+    id: int = (
+        request
+        .parser_context.get('kwargs')
+        .get('id')
+    )
+    try:
+        recipe: Recipe = Recipe.objects.get(id=id)
+    except Recipe.DoesNotExist:
+        raise ValidationError(
+            {
+                'recipe': 'Такого рецепта не существует.'
+            }
+        )
+    return recipe
+
+
+def post_request_user_recipe_validator(
+        related_model: Model, method: str,
+        recipe: Recipe, user: User
+) -> None | ValidationError:
+    """
+    Проверяет есть ли уже связь
+    объектов пользователя и рецепта в базу.
+    """
+    model_related_exists: bool = (
+        related_model.objects.filter(
+            user=user,
+            recipe=recipe
+        ).exists()
+    )
+    if method == 'POST' and model_related_exists:
+        raise ValidationError(
+            {
+                'recipe': 'Этот рецепт уже добавлен.'
+            }
+        )
+
+
+def valide_follow_exists(instance: Follow | None) -> ValidationError | None:
+    """Проверяет наличие подписки в у пользователя."""
+    if not instance:
+        raise ValidationError(
+            {
+                'follow': 'Вы не были подписаны на данного пользователя.'
             }
         )

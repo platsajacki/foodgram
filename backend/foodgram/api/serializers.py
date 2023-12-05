@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Model
+from django.db.models import QuerySet
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
@@ -84,17 +84,15 @@ class RecipeSerializer(serializers.ModelSerializer):
             'is_favorited', 'is_in_shopping_cart',
         )
 
-    def relate_user_recipe(self, obj: Recipe, related_model: Model) -> bool:
+    def relate_user_recipe(self, related_queryset: QuerySet) -> bool:
         """Определяет, связан ли текущий пользователь с переданным рецептом."""
         current_user: User = self.context['request'].user
         if isinstance(current_user, AnonymousUser):
             return False
         return (
-            related_model.objects
-            .filter(
-                user=current_user,
-                recipe=obj,
-            ).exists()
+            related_queryset
+            .filter(user=current_user)
+            .exists()
         )
 
     def get_is_favorited(self, obj: Recipe) -> bool:
@@ -102,14 +100,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         Получает информацию, отмечен ли переданный рецепт
         как избранный для текущего пользователя.
         """
-        return self.relate_user_recipe(obj, FavouriteRecipe)
+        return self.relate_user_recipe(obj.favouriterecipe_set)
 
     def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
         """
         Получает информацию, находится ли переданный рецепт
         в списке покупок текущего пользователя.
         """
-        return self.relate_user_recipe(obj, ShoppingCard)
+        return self.relate_user_recipe(obj.shoppingcard_set)
 
     def validate(
             self, attrs: dict[str, Any]

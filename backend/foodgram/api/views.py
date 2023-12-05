@@ -76,7 +76,7 @@ class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     """Представление, отвечающее за работу с рецептами."""
-    queryset = Recipe.objects.all()
+    queryset = Recipe.with_related.all()
     serializer_class = RecipeSerializer
     permission_classes = [
         IsAuthenticatedOrReadOnly,

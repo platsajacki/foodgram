@@ -380,3 +380,18 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
             user=validated_data['user'],
             following=validated_data['following']
         )
+
+    def to_representation(self, instance: Follow) -> dict[str, Any]:
+        """
+        Метода для изменения представления экземпляров Follow
+        с ограничением по количеству рецептов (если применимо).
+        """
+        data: dict[str, Any] = super().to_representation(instance)
+        recipes_limit: str | None = (
+            self.context['request']
+            .query_params.get('recipes_limit')
+        )
+        recipes: list[OrderedDict[Recipe]] = data['recipes']
+        if recipes_limit and recipes and len(recipes) > int(recipes_limit):
+            data['recipes'] = recipes[:int(recipes_limit)]
+        return data

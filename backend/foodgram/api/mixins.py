@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from .fields import Base64ImageField
 from .validators import valide_user_has_recipe
-from users.models import User, Follow
+from users.models import User
 
 
 class GetNonePaginatorAllowAny:
@@ -87,10 +87,4 @@ class SubscribedMethodField(serializers.Serializer):
         current_user: User = self.context['request'].user
         if isinstance(current_user, AnonymousUser):
             return False
-        return (
-            Follow.objects
-            .filter(
-                user=current_user,
-                following=obj
-            ).exists()
-        )
+        return obj.followings.filter(user=current_user).exists()

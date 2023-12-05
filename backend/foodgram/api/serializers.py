@@ -383,7 +383,7 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
 
     def to_representation(self, instance: Follow) -> dict[str, Any]:
         """
-        Метода для изменения представления экземпляров Follow
+        Метод для изменения представления экземпляров Follow
         с ограничением по количеству рецептов (если применимо).
         """
         data: dict[str, Any] = super().to_representation(instance)

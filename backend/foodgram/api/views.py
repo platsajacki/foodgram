@@ -66,10 +66,7 @@ class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
         queryset: QuerySet = Ingredient.objects.all()
         name_param: str = self.request.query_params.get('name')
         if name_param:
-            queryset: QuerySet = (
-                queryset.filter(name__istartswith=name_param)
-                | queryset.filter(name__icontains=name_param)
-            )
+            queryset: QuerySet = queryset.filter(name__istartswith=name_param)
         return queryset
 
 

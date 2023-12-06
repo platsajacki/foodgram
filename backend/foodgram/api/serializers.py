@@ -37,7 +37,7 @@ class UserCustomSerializer(SubscribedMethodField, UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ('is_subscribed',)
 
-    def get_is_subscribed(self, obj: Follow) -> bool:
+    def get_is_subscribed(self, obj: User) -> bool:
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
         """

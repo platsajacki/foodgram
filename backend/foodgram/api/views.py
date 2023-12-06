@@ -91,7 +91,7 @@ class RecipeViewSet(ModelViewSet):
 
 class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
     """Представление, отвечающее за работу с корзиной покупок."""
-    queryset = ShoppingCart.objects.all()
+    queryset = ShoppingCart.objects.select_related('user', 'recipe')
     serializer_class = ShoppingCartSerializer
     http_method_names = ['get', 'post', 'delete']
 
@@ -127,7 +127,7 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
 
 class FavouriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
     """Представление, отвечающее за работу с избранным."""
-    queryset = FavouriteRecipe.objects.all()
+    queryset = FavouriteRecipe.objects.select_related('user', 'recipe')
     serializer_class = FavouriteRecipeSerializer
     http_method_names = ['post', 'delete']
 

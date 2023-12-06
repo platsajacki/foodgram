@@ -113,6 +113,9 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
+    'EXCEPTION_HANDLER': (
+        'api.utils.custom_exception_handler'
+    ),
     'PAGE_SIZE': 10,
 }
 

@@ -73,7 +73,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd frontend/
-        npm ci
+        npm install
     - name: Test frontend
       run: |
         cd frontend/

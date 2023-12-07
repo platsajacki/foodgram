@@ -131,7 +131,7 @@ jobs:
           sudo docker compose -f docker-compose.production.yml pull
           sudo docker compose -f docker-compose.production.yml down
           sudo docker compose -f docker-compose.production.yml up -d
-          sudo docker cp /home/yc-user/foodgram/fixtures/. backend:/app/foodgram/fixtures/
+          sudo docker compose -f docker-compose.production.yml cp /home/yc-user/foodgram/fixtures/. backend:/app/foodgram/fixtures/
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate

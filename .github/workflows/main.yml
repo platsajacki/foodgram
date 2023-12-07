@@ -131,11 +131,12 @@ jobs:
           sudo docker compose -f docker-compose.production.yml pull
           sudo docker compose -f docker-compose.production.yml down
           sudo docker compose -f docker-compose.production.yml up -d
-          sudo docker cp /path/to/foodgram/fixtures/. backend:/app/foodgram/fixtures/
+          sudo docker cp /home/yc-user/foodgram/fixtures/. backend:/app/foodgram/fixtures/
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py loaddata /app/foodgram/fixtures/*.json
+          sudo docker compose -f docker-compose.production.yml exec backend python manage.py loaddata /app/foodgram/fixtures/ingredients.json
+          sudo docker compose -f docker-compose.production.yml exec backend python manage.py loaddata /app/foodgram/fixtures/tags.json
 
   send_message:
     # if: github.ref == 'refs/heads/main'

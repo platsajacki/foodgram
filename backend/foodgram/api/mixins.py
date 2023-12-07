@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from .fields import Base64ImageField
 from .validators import valide_user_has_recipe
-from users.models import User
+from users.models import User, Follow
 
 
 class GetNonePaginatorAllowAny:
@@ -83,8 +83,14 @@ class SubscribedMethodField(serializers.Serializer):
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
         В случае, если пользователь анонимный, возвращается 'False'.
+        У объекта должно быть поле 'follower', в котором содержится
+        список с моделью подписки, он будет пуcтым,
+        если пользователи не связаны.
+        Если запрошиваем свои подписки, то в любом случае будет True.
         """
         current_user: User = self.context['request'].user
         if isinstance(current_user, AnonymousUser):
             return False
-        return obj.followings.filter(user=current_user).exists()
+        if self.Meta.model == Follow:
+            return True
+        return bool(obj.follower)

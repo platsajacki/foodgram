@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from .managers import UserManager
+from .managers import UserManager, FollowManager, FollowQuerySet
 from core.models import UserRecipe, DateAdded
 
 
@@ -70,6 +70,9 @@ class Follow(DateAdded, models.Model):
         on_delete=models.CASCADE,
         related_name='followings'
     )
+
+    objects = FollowQuerySet.as_manager()
+    with_related = FollowManager()
 
     class Meta:
         unique_together = ['user', 'following']

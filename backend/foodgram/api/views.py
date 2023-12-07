@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from django.db.models import QuerySet, Sum
+from django.db.models import QuerySet, Sum, Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -35,6 +35,24 @@ class UserCustomViewSet(UserViewSet):
     """Представление, отвечающее за работу с пользователями в системе."""
     http_method_names = ['get', 'post',]
 
+    def get_queryset(self) -> QuerySet:
+        """
+        Получает запрос для модели и выполняет предварительную загрузку
+        связанных объектов Follow для текущего пользователя.
+        """
+        if not self.request.user.is_authenticated:
+            return User.objects.all()
+        return User.objects.prefetch_related(
+            Prefetch(
+                'followings',
+                queryset=(
+                    Follow.with_related
+                    .filter(user=self.request.user)
+                ),
+                to_attr='follower'
+            )
+        )
+
     @action(
         detail=False,
         methods=['get'],
@@ -42,7 +60,8 @@ class UserCustomViewSet(UserViewSet):
     )
     def me(self, request: Request) -> Response:
         """Получает информацию о текущем авторизованном пользователе."""
-        serializer: UserCustomSerializer = self.get_serializer(request.user)
+        user: User = self.get_queryset().get(id=request.user.id)
+        serializer: UserCustomSerializer = self.get_serializer(user)
         return Response(serializer.data)
 
 
@@ -72,7 +91,6 @@ class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
 
 class RecipeViewSet(ModelViewSet):
     """Представление, отвечающее за работу с рецептами."""
-    queryset = Recipe.with_related.all()
     serializer_class = RecipeSerializer
     permission_classes = [
         IsAuthenticatedOrReadOnly,
@@ -83,6 +101,26 @@ class RecipeViewSet(ModelViewSet):
         'get', 'post',
         'patch', 'delete'
     ]
+
+    def get_queryset(self) -> QuerySet:
+        """
+        Получает запрос для модели и выполняет предварительную загрузку
+        связанных объектов Follow, Ingredient, Tag для текущего пользователя.
+        """
+        if not self.request.user.is_authenticated:
+            return Recipe.with_related.all()
+        return (
+            Recipe.with_related
+            .prefetch_related(
+                Prefetch(
+                    'author__followings',
+                    queryset=(
+                        Follow.with_related
+                        .filter(user=self.request.user)
+                    ),
+                    to_attr='follower'
+                )
+            ))
 
     def perform_create(self, serializer: RecipeSerializer) -> None:
         """Создаем рецепт и присваем текущего пользователя."""
@@ -144,7 +182,7 @@ class FollowViewSet(ModelViewSet):
         связанных с запрашивающим пользователем.
         """
         return (
-            Follow.objects
+            Follow.with_related
             .filter(user=self.request.user)
             .prefetch_related('following__recipes')
             .all()

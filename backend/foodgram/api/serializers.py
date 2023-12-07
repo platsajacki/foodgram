@@ -128,6 +128,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""
+        if self.context['request'].method in ['POST', 'PACTH']:
+            instance = self.context['view'].get_queryset().get(id=instance.id)
         representation: dict[str, str] = super().to_representation(instance)
         ingredient_data: list[dict] = []
         for recipe_ingredient in instance.recipeingredient_set.all():
@@ -384,6 +386,10 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
         Метод для изменения представления экземпляров Follow
         с ограничением по количеству рецептов (если применимо).
         """
+        if self.context['request'].method == 'POST':
+            instance: Follow = (
+                self.context['view'].get_queryset().get(id=instance.id)
+            )
         data: dict[str, Any] = super().to_representation(instance)
         recipes_limit: str | None = (
             self.context['request']

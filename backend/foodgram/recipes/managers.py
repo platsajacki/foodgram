@@ -9,9 +9,9 @@ class RecipeQuerySet(QuerySet):
         """
         return (
             self
-            .select_related('author')
+            .select_related('author',)
             .prefetch_related(
-                'tags', 'ingredients', 'recipeingredient_set__ingredient',
+                'tags', 'recipeingredient_set__ingredient',
                 'favouriterecipe_set', 'shoppingcart_set',
             )
         )

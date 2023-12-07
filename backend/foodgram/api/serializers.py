@@ -85,9 +85,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def relate_user_recipe(self, related_queryset: QuerySet) -> bool:
-        """Определяет, связан ли текущий пользователь с переданным рецептом."""
+        """
+        Определяет, связан ли текущий пользователь с переданным рецептом.
+        Если анонимный пользователь делает запрос или рецепт только сделан
+        возвращается False.
+        """
         current_user: User = self.context['request'].user
-        if isinstance(current_user, AnonymousUser):
+        if (
+            isinstance(current_user, AnonymousUser)
+            or self.context['request'] == 'POST'
+        ):
             return False
         return (
             related_queryset

@@ -1,9 +1,28 @@
 from io import BytesIO
+from http import HTTPStatus
+from typing import Any
 
 from django.db.models import QuerySet
+from django.http.response import HttpResponse
 from openpyxl import Workbook
+from rest_framework.response import Response
+from rest_framework.views import exception_handler
 
 from openpyxl_styles import header_style, body_style
+
+
+def custom_exception_handler(
+        exc: HttpResponse, context: dict[str, Any]
+) -> Response:
+    """
+    Кастомный обработчик исключений для Django REST Framework.
+    """
+    response: Response = exception_handler(exc, context)
+    if response and response.status_code == HTTPStatus.NOT_FOUND:
+        response.data: dict[str, str] = {
+            'detail': 'Страницы, которую Вы ищете, не существует.'
+        }
+    return response
 
 
 def get_xls_shopping_cart(ingredients: QuerySet) -> BytesIO:

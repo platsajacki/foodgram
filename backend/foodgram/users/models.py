@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from .managers import UserManager
+from .managers import UserManager, FollowManager, FollowQuerySet
 from core.models import UserRecipe, DateAdded
 
 
@@ -43,7 +43,7 @@ class User(AbstractUser):
     )
     shopping_cart = models.ManyToManyField(
         'recipes.Recipe',
-        through='ShoppingCard',
+        through='ShoppingCart',
         related_name='user_shopping_cart',
         verbose_name='Корзина',
     )
@@ -70,6 +70,9 @@ class Follow(DateAdded, models.Model):
         on_delete=models.CASCADE,
         related_name='followings'
     )
+
+    objects = FollowQuerySet.as_manager()
+    with_related = FollowManager()
 
     class Meta:
         unique_together = ['user', 'following']
@@ -104,7 +107,7 @@ class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
         return f'Избранное {self.user.first_name} {self.user.last_name}'
 
 
-class ShoppingCard(UserRecipe, DateAdded, models.Model):
+class ShoppingCart(UserRecipe, DateAdded, models.Model):
     """
     Промежуточная модель для хранения связи
     пользователя и рецептов в его корзине.

@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.contrib.auth.base_user import BaseUserManager
+from django.db.models import QuerySet, Manager
 
 
 class UserManager(BaseUserManager):
@@ -78,4 +79,30 @@ class UserManager(BaseUserManager):
             first_name=first_name,
             last_name=last_name,
             **extra_fields
+        )
+
+
+class FollowQuerySet(QuerySet):
+    """QuerySet для работы с моделью Recipe."""
+    def related_tables(self) -> 'FollowQuerySet':
+        """
+        Отимизирует запрос, присоединяя таблицы.
+        """
+        return (
+            self
+            .select_related('following', 'user')
+            .prefetch_related('following', 'user')
+        )
+
+
+class FollowManager(Manager):
+    """Manager для работы с моделью Recipe."""
+    def get_queryset(self) -> 'FollowManager':
+        """
+        Возвращает QuerySet для модели Follow
+        с выбранными связанными таблицами.
+        """
+        return (
+            FollowQuerySet(self.model)
+            .related_tables()
         )

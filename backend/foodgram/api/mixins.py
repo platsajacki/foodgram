@@ -83,14 +83,14 @@ class SubscribedMethodField(serializers.Serializer):
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
         В случае, если пользователь анонимный, возвращается 'False'.
+        У объекта должно быть поле 'follower', в котором содержится
+        список с моделью подписки, он будет пуcтым,
+        если пользователи не связаны.
+        Если запрошиваем свои подписки, то в любом случае будет True.
         """
         current_user: User = self.context['request'].user
         if isinstance(current_user, AnonymousUser):
             return False
-        return (
-            Follow.objects
-            .filter(
-                user=current_user,
-                following=obj
-            ).exists()
-        )
+        if self.Meta.model == Follow:
+            return True
+        return bool(obj.follower)

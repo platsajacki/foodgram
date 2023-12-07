@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import User, Follow, ShoppingCard, FavouriteRecipe
+from .models import User, Follow, ShoppingCart, FavouriteRecipe
 
 
 @admin.register(Follow)
@@ -26,9 +26,9 @@ class FavouriteRecipeAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(ShoppingCard)
-class ShoppingCardRecipeAdmin(admin.ModelAdmin):
-    """Настройка панели администратора для модели 'ShoppingCard'."""
+@admin.register(ShoppingCart)
+class ShoppingCartRecipeAdmin(admin.ModelAdmin):
+    """Настройка панели администратора для модели 'ShoppingCart'."""
     list_display = (
         'user', 'recipe', 'date_added',
     )
@@ -45,9 +45,9 @@ class FavouriteRecipeInline(admin.StackedInline):
     readonly_fields = ('date_added',)
 
 
-class ShoppingCardInline(admin.StackedInline):
-    """Инлайн для модели 'ShoppingCardInline'."""
-    model = ShoppingCard
+class ShoppingCartInline(admin.StackedInline):
+    """Инлайн для модели 'ShoppingCartInline'."""
+    model = ShoppingCart
     extra = 0
     fields = ('recipe', 'date_added',)
     readonly_fields = ('date_added',)
@@ -56,7 +56,7 @@ class ShoppingCardInline(admin.StackedInline):
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     """Настройка панели администратора для модели 'User'."""
-    inlines = (FavouriteRecipeInline, ShoppingCardInline,)
+    inlines = (FavouriteRecipeInline, ShoppingCartInline,)
     add_fieldsets = (
         ('Регистрация пользователя', {
             'classes': ('wide',),

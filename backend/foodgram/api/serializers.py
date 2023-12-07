@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Model
+from django.db.models import QuerySet
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
@@ -15,7 +15,7 @@ from .validators import (
     recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
-from users.models import User, FavouriteRecipe, ShoppingCard, Follow
+from users.models import User, FavouriteRecipe, ShoppingCart, Follow
 
 
 class UserCustomCreateSerializer(UserCreateSerializer):
@@ -37,7 +37,7 @@ class UserCustomSerializer(SubscribedMethodField, UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ('is_subscribed',)
 
-    def get_is_subscribed(self, obj: Follow) -> bool:
+    def get_is_subscribed(self, obj: User) -> bool:
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
         """
@@ -84,17 +84,15 @@ class RecipeSerializer(serializers.ModelSerializer):
             'is_favorited', 'is_in_shopping_cart',
         )
 
-    def relate_user_recipe(self, obj: Recipe, related_model: Model) -> bool:
+    def relate_user_recipe(self, related_queryset: QuerySet) -> bool:
         """Определяет, связан ли текущий пользователь с переданным рецептом."""
         current_user: User = self.context['request'].user
         if isinstance(current_user, AnonymousUser):
             return False
         return (
-            related_model.objects
-            .filter(
-                user=current_user,
-                recipe=obj,
-            ).exists()
+            related_queryset
+            .filter(user=current_user)
+            .exists()
         )
 
     def get_is_favorited(self, obj: Recipe) -> bool:
@@ -102,14 +100,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         Получает информацию, отмечен ли переданный рецепт
         как избранный для текущего пользователя.
         """
-        return self.relate_user_recipe(obj, FavouriteRecipe)
+        return self.relate_user_recipe(obj.favouriterecipe_set)
 
     def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
         """
         Получает информацию, находится ли переданный рецепт
         в списке покупок текущего пользователя.
         """
-        return self.relate_user_recipe(obj, ShoppingCard)
+        return self.relate_user_recipe(obj.shoppingcart_set)
 
     def validate(
             self, attrs: dict[str, Any]
@@ -130,6 +128,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""
+        if self.context['request'].method in ['POST', 'PACTH']:
+            instance = self.context['view'].get_queryset().get(id=instance.id)
         representation: dict[str, str] = super().to_representation(instance)
         ingredient_data: list[dict] = []
         for recipe_ingredient in instance.recipeingredient_set.all():
@@ -228,11 +228,11 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         )
 
 
-class ShoppingCardSerializer(UserRecipeFieldsSet,
+class ShoppingCartSerializer(UserRecipeFieldsSet,
                              serializers.ModelSerializer):
-    """Сериализатор для модели ShoppingCard."""
+    """Сериализатор для модели ShoppingCart."""
     class Meta:
-        model = ShoppingCard
+        model = ShoppingCart
         fields = (
             'id', 'name',
             'image', 'cooking_time',
@@ -247,18 +247,18 @@ class ShoppingCardSerializer(UserRecipeFieldsSet,
         """
         recipe: Recipe = recipe_exist_validator(self.context['request'])
         post_request_user_recipe_validator(
-            ShoppingCard, self.context['request'].method,
+            ShoppingCart, self.context['request'].method,
             recipe, self.context['request'].user
         )
         attrs['recipe'] = recipe
         return attrs
 
-    def create(self, validated_data: dict[str, Any]) -> ShoppingCard:
+    def create(self, validated_data: dict[str, Any]) -> ShoppingCart:
         """
-        Создает новый объект 'ShoppingCard'
+        Создает новый объект 'ShoppingCart'
         на основании валидированных данных.
         """
-        return ShoppingCard.objects.create(
+        return ShoppingCart.objects.create(
             user=self.context['request'].user,
             recipe=validated_data['recipe']
         )
@@ -383,9 +383,13 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
 
     def to_representation(self, instance: Follow) -> dict[str, Any]:
         """
-        Метода для изменения представления экземпляров Follow
+        Метод для изменения представления экземпляров Follow
         с ограничением по количеству рецептов (если применимо).
         """
+        if self.context['request'].method == 'POST':
+            instance: Follow = (
+                self.context['view'].get_queryset().get(id=instance.id)
+            )
         data: dict[str, Any] = super().to_representation(instance)
         recipes_limit: str | None = (
             self.context['request']

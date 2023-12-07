@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from .managers import RecipeManager, RecipeQuerySet
 from core.models import NameString
 
 more_zero = MinValueValidator(1)
@@ -77,6 +78,9 @@ class Recipe(NameString, models.Model):
         verbose_name='Время приготовления',
         validators=[more_zero]
     )
+
+    objects = RecipeQuerySet.as_manager()
+    with_related = RecipeManager()
 
     class Meta:
         verbose_name = 'Рецепт'

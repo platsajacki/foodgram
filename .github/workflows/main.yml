@@ -38,8 +38,8 @@ jobs:
         DB_PORT: ${{ secrets.DB_PORT }}
       run: |
         python -m flake8 backend/
-        python foodgram/manage.py migrate
-        python foodgram/manage.py runserver
+        python ./backend/foodgram/manage.py migrate
+        python ./backend/foodgram/manage.py runserver
     - uses: actions/checkout@master
     - uses: matt-ball/newman-action@master
       with:

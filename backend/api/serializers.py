@@ -10,8 +10,7 @@ from .fields import Base64ImageField, IngredientRecipeWriteField
 from .mixins import UserRecipeFieldsSet, SubscribedMethodField
 from .validators import (
     tags_unique_validator, ingredients_exist_validator,
-    ingredients_unique_validator, check_duplicate_recipe,
-    get_ingredient_or_400, tags_exist_validator,
+    ingredients_unique_validator, get_ingredient_or_400, tags_exist_validator,
     recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
@@ -120,11 +119,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             self, attrs: dict[str, Any]
     ) -> dict[str, Any] | serializers.ValidationError:
         """Проверяет входные данные."""
-        instance: Recipe | None = self.instance
-        check_duplicate_recipe(
-            self.context['request'],
-            attrs['name'], instance
-        )
         ingredients: list[OrderedDict[str, int]] = attrs.get('ingredients')
         ingredients_exist_validator(ingredients)
         ingredients_unique_validator(ingredients)

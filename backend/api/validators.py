@@ -63,24 +63,6 @@ def ingredients_unique_validator(
         seen_ingredients.add(ingredient_id)
 
 
-def check_duplicate_recipe(
-        request: Request, name: str, instance: Recipe | None
-) -> None | ValidationError:
-    """Проверка рецептов на дублирование."""
-    error: ValidationError = ValidationError(
-        {
-            'recipe':
-            'У Вас уже существует рецепт с таким названием.'
-        }
-    )
-    if request.method in ['POST', 'PATCH']:
-        recipe: Recipe = Recipe.objects.filter(author=request.user, name=name)
-        if instance and recipe.exclude(id=instance.id).exists():
-            raise error
-        if recipe.exists():
-            raise error
-
-
 def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
     """
     Получает объект ингредиента по его ID

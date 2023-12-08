@@ -20,7 +20,26 @@ https://menyukhov-foodgram.ddns.net/
 1. Склонируйте репозиторий `foodgram-project-react` на свой компьютер.
 2. Запустите проект в трёх контейнерах с помощью Docker Compose:
     ```
-    docker-compose up
+    docker compose up
+    ```
+3. Скопируйте фикстуры в проект:
+    ```
+    docker compose cp /data/. backend:/app/foodgram/fixtures/
+    ```
+4. Войдите в контейнер с Django проведите миграцию и соберите статику:
+    ```
+    docker compose exec -it backend bash
+    python manage.py migrate
+    python manage.py collectstatic
+    ```
+5. Загрузите данные с ингредиентами и тегами:
+    ```
+    python manage.py loaddata /app/foodgram/fixtures/ingredients.json
+    python manage.py loaddata /app/foodgram/fixtures/tags.json
+    ```
+6. Если потребуется работа в панели администратора, создайте суперпользователя:
+    ```
+    python manage.py createsuperuser
     ```
 
 ## Прочее

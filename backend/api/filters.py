@@ -43,7 +43,7 @@ class RecipeFilterSet(filters.FilterSet):
         Позволяет использовать несколько значений тегов для фильтрации.
         """
         tags: list[str] = self.request.GET.getlist('tags', '')
-        return queryset.filter(tags__slug__in=tags)
+        return queryset.filter(tags__slug__in=tags).distinct()
 
     def get_current_queryset(
             self, queryset: QuerySet, name: str,

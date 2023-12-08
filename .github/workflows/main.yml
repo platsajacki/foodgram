@@ -39,8 +39,8 @@ jobs:
       run: |
         python -m flake8 backend/
         python backend/manage.py migrate
-        python manage.py loaddata data/ingredients.json
-        python manage.py loaddata data/tags.json
+        python backend/manage.py loaddata data/ingredients.json
+        python backend/manage.py loaddata data/tags.json
         nohup python backend/manage.py runserver &
     - uses: actions/checkout@master
     - uses: matt-ball/newman-action@master

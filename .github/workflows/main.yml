@@ -39,7 +39,11 @@ jobs:
       run: |
         python -m flake8 backend/
         python backend/manage.py migrate
-        nohup python backend/manage.py runserver &
+        python backend/manage.py runserver &
+        until $(curl --output /dev/null --silent --head --fail http://localhost:8000); do
+            printf '.'
+            sleep 5
+        done
     - uses: actions/checkout@master
     - uses: matt-ball/newman-action@master
       with:

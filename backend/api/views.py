@@ -33,7 +33,7 @@ from users.models import User, ShoppingCart, FavouriteRecipe, Follow
 
 class UserCustomViewSet(UserViewSet):
     """Представление, отвечающее за работу с пользователями в системе."""
-    http_method_names = ['get', 'post',]
+    http_method_names = ['get', 'post']
 
     def get_queryset(self) -> QuerySet:
         """

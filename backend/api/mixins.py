@@ -18,8 +18,8 @@ class GetNonePaginatorAllowAny:
     отключая пагинацию и устанавливая разрешения на 'AllowAny'.
     """
     pagination_class = None
-    http_method_names = ['get',]
-    permission_classes = [AllowAny,]
+    http_method_names = ['get']
+    permission_classes = [AllowAny]
 
 
 class UserRecipeViewSet:

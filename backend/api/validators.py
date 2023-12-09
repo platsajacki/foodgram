@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Any
 
 from django.db.models import Model
 from rest_framework.serializers import ValidationError
@@ -139,5 +140,16 @@ def valide_follow_exists(instance: Follow | None) -> ValidationError | None:
         raise ValidationError(
             {
                 'follow': 'Вы не были подписаны на данного пользователя.'
+            }
+        )
+
+
+def valide_image_exists(value: str | Any) -> None | ValidationError:
+    """Проверяет наличие изображения."""
+    if not value:
+        raise ValidationError(
+            {
+                'image':
+                'Без изображение блюда нельзя опубликовать рецепт.'
             }
         )

@@ -7,12 +7,13 @@ from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer,
     UserSerializer as DjoserUserSerializer
 )
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .fields import Base64ImageField, IngredientRecipeWriteField
+from .fields import IngredientRecipeWriteField
 from .mixins import UserRecipeFieldsSet, SubscribedMethodField
 from .validators import (
-    tags_unique_validator, ingredients_exist_validator,
+    tags_unique_validator, ingredients_exist_validator, valide_image_exists,
     ingredients_unique_validator, get_ingredient_or_400, tags_exist_validator,
     recipe_exist_validator, post_request_user_recipe_validator
 )
@@ -68,7 +69,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Ingredient."""
-    image = Base64ImageField()
+    image = Base64ImageField(
+        represent_in_base64=True,
+        validators=[valide_image_exists]
+    )
     ingredients = IngredientRecipeWriteField(
         write_only=True, many=True
     )

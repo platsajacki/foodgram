@@ -120,7 +120,8 @@ class RecipeViewSet(ModelViewSet):
                     ),
                     to_attr='follower'
                 )
-            ))
+            )
+        )
 
     def perform_create(self, serializer: RecipeSerializer) -> None:
         """Создаем рецепт и присваем текущего пользователя."""

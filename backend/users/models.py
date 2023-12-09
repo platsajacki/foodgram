@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from .managers import UserManager, FollowManager, FollowQuerySet
+from .managers import (
+    UserManager, FollowManager,
+    FollowQuerySet, ShoppingCartQuerySet
+)
 from core.models import UserRecipe, DateAdded
 
 
@@ -112,6 +115,8 @@ class ShoppingCart(UserRecipe, DateAdded, models.Model):
     Промежуточная модель для хранения связи
     пользователя и рецептов в его корзине.
     """
+    objects = ShoppingCartQuerySet.as_manager()
+
     class Meta:
         ordering = ['-date_added', 'user']
         unique_together = ['user', 'recipe']

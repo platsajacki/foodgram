@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from django.db.models import QuerySet, Sum, Prefetch
+from django.db.models import QuerySet, Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -142,22 +142,7 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
         ingredients: QuerySet = (
             ShoppingCart.objects
             .filter(user=request.user)
-            .values(
-                'recipe__recipeingredient__ingredient__name',
-            )
-            .annotate(
-                total_amount=Sum(
-                    'recipe__recipeingredient__amount',
-                )
-            )
-            .order_by(
-                'recipe__recipeingredient__ingredient__name',
-            )
-            .values(
-                'recipe__recipeingredient__ingredient__measurement_unit',
-                'recipe__recipeingredient__ingredient__name',
-                'total_amount',
-            )
+            .get_ingredients_shoppingcart()
         )
         buffer: BytesIO = get_xls_shopping_cart(ingredients)
         today: date = timezone.now().date()

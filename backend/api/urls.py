@@ -2,16 +2,16 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    UserCustomViewSet, TagViewSet,
+    UserViewSet, TagViewSet,
     IngredientViewSet, RecipeViewSet,
-    ShoppingCartViewSet, FavouriteRecipeViewSet,
+    ShoppingCartViewSet, FavoriteRecipeViewSet,
     FollowViewSet
 )
 
 router = DefaultRouter()
 router.register(
     r'users',
-    UserCustomViewSet,
+    UserViewSet,
     basename='users'
 )
 router.register(
@@ -48,7 +48,7 @@ urlpatterns = [
     ),
     path(
         'recipes/<int:id>/favorite/',
-        FavouriteRecipeViewSet.as_view(
+        FavoriteRecipeViewSet.as_view(
             {'post': 'create', 'delete': 'destroy'}
         ),
         name='favorite'

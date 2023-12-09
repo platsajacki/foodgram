@@ -3,7 +3,10 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+    UserSerializer as DjoserUserSerializer
+)
 from rest_framework import serializers
 
 from .fields import Base64ImageField, IngredientRecipeWriteField
@@ -14,10 +17,10 @@ from .validators import (
     recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
-from users.models import User, FavouriteRecipe, ShoppingCart, Follow
+from users.models import User, FavoriteRecipe, ShoppingCart, Follow
 
 
-class UserCustomCreateSerializer(UserCreateSerializer):
+class UserCreateSerializer(DjoserUserCreateSerializer):
     """
     Сериализатор для регистрации пользователя,
     который учитывает недопустимость username со значением 'me'.
@@ -31,10 +34,10 @@ class UserCustomCreateSerializer(UserCreateSerializer):
         return value
 
 
-class UserCustomSerializer(SubscribedMethodField, UserSerializer):
+class UserSerializer(SubscribedMethodField, DjoserUserSerializer):
     """Сериализатор для модели User."""
-    class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ('is_subscribed',)
+    class Meta(DjoserUserSerializer.Meta):
+        fields = DjoserUserSerializer.Meta.fields + ('is_subscribed',)
 
     def get_is_subscribed(self, obj: User) -> bool:
         """
@@ -69,7 +72,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientRecipeWriteField(
         write_only=True, many=True
     )
-    author = UserCustomSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
 
@@ -106,7 +109,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         Получает информацию, отмечен ли переданный рецепт
         как избранный для текущего пользователя.
         """
-        return self.relate_user_recipe(obj.favouriterecipe_set)
+        return self.relate_user_recipe(obj.favoriterecipe_set)
 
     def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
         """
@@ -265,11 +268,11 @@ class ShoppingCartSerializer(UserRecipeFieldsSet,
         )
 
 
-class FavouriteRecipeSerializer(UserRecipeFieldsSet,
-                                serializers.ModelSerializer):
-    """Сериализатор для модели FavouriteRecipe."""
+class FavoriteRecipeSerializer(UserRecipeFieldsSet,
+                               serializers.ModelSerializer):
+    """Сериализатор для модели FavoriteRecipe."""
     class Meta:
-        model = FavouriteRecipe
+        model = FavoriteRecipe
         fields = (
             'id', 'name',
             'image', 'cooking_time',
@@ -284,18 +287,18 @@ class FavouriteRecipeSerializer(UserRecipeFieldsSet,
         """
         recipe: Recipe = recipe_exist_validator(self.context['request'])
         post_request_user_recipe_validator(
-            FavouriteRecipe, self.context['request'].method,
+            FavoriteRecipe, self.context['request'].method,
             recipe, self.context['request'].user
         )
         attrs['recipe'] = recipe
         return attrs
 
-    def create(self, validated_data: dict[str, Any]) -> FavouriteRecipe:
+    def create(self, validated_data: dict[str, Any]) -> FavoriteRecipe:
         """
-        Создает новый объект 'FavouriteRecipe'
+        Создает новый объект 'FavoriteRecipe'
         на основании валидированных данных.
         """
-        return FavouriteRecipe.objects.create(
+        return FavoriteRecipe.objects.create(
             user=self.context['request'].user,
             recipe=validated_data['recipe']
         )

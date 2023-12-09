@@ -12,7 +12,7 @@ class RecipeQuerySet(QuerySet):
             .select_related('author',)
             .prefetch_related(
                 'tags', 'recipeingredient_set__ingredient',
-                'favouriterecipe_set', 'shoppingcart_set',
+                'favoriterecipe_set', 'shoppingcart_set',
             )
         )
 

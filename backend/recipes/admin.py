@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import Ingredient, Tag, Recipe, RecipeIngredient
-from users.models import FavouriteRecipe
+from users.models import FavoriteRecipe
 
 
 @admin.register(Ingredient)
@@ -59,12 +59,12 @@ class RecipeAdmin(admin.ModelAdmin):
     fields = (
         'name', 'author', 'image',
         'text', 'tags', 'cooking_time',
-        'favourites_count',
+        'favorites_count',
     )
-    readonly_fields = ('favourites_count',)
+    readonly_fields = ('favorites_count',)
 
-    def favourites_count(self, instance: Recipe) -> int:
+    def favorites_count(self, instance: Recipe) -> int:
         """Возвращает количество добавлений рецепта в избранное."""
-        return FavouriteRecipe.objects.filter(recipe=instance).count()
+        return FavoriteRecipe.objects.filter(recipe=instance).count()
 
-    favourites_count.short_description = 'Количество добавлений в избранное'
+    favorites_count.short_description = 'Количество добавлений в избранное'

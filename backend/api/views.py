@@ -5,7 +5,7 @@ from django.db.models import QuerySet, Sum, Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from djoser.views import UserViewSet
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
@@ -20,18 +20,18 @@ from .filters import RecipeFilterSet
 from .mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .permissions import IsAuthor
 from .serializers import (
-    UserCustomSerializer, TagSerializer,
+    UserSerializer, TagSerializer,
     IngredientSerializer, RecipeSerializer,
-    ShoppingCartSerializer, FavouriteRecipeSerializer,
+    ShoppingCartSerializer, FavoriteRecipeSerializer,
     FollowSerializer
 )
 from .validators import valide_follow_exists
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
-from users.models import User, ShoppingCart, FavouriteRecipe, Follow
+from users.models import User, ShoppingCart, FavoriteRecipe, Follow
 
 
-class UserCustomViewSet(UserViewSet):
+class UserViewSet(DjoserUserViewSet):
     """Представление, отвечающее за работу с пользователями в системе."""
     http_method_names = ['get', 'post']
 
@@ -61,7 +61,7 @@ class UserCustomViewSet(UserViewSet):
     def me(self, request: Request) -> Response:
         """Получает информацию о текущем авторизованном пользователе."""
         user: User = self.get_queryset().get(id=request.user.id)
-        serializer: UserCustomSerializer = self.get_serializer(user)
+        serializer: UserSerializer = self.get_serializer(user)
         return Response(serializer.data)
 
 
@@ -163,10 +163,10 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
         return FileResponse(buffer, filename=f'Список покупок_{today}.xls')
 
 
-class FavouriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
+class FavoriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
     """Представление, отвечающее за работу с избранным."""
-    queryset = FavouriteRecipe.objects.select_related('user', 'recipe')
-    serializer_class = FavouriteRecipeSerializer
+    queryset = FavoriteRecipe.objects.select_related('user', 'recipe')
+    serializer_class = FavoriteRecipeSerializer
     http_method_names = ['post', 'delete']
 
 

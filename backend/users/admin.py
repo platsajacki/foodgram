@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from .models import User, Follow, ShoppingCart, FavouriteRecipe
+from .models import User, Follow, ShoppingCart, FavoriteRecipe
 
 
 @admin.register(Follow)
@@ -15,9 +15,9 @@ class FollowAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(FavouriteRecipe)
-class FavouriteRecipeAdmin(admin.ModelAdmin):
-    """Настройка панели администратора для модели 'FavouriteRecipe'."""
+@admin.register(FavoriteRecipe)
+class FavoriteRecipeAdmin(admin.ModelAdmin):
+    """Настройка панели администратора для модели 'FavoriteRecipe'."""
     list_display = (
         'user', 'recipe', 'date_added',
     )
@@ -37,9 +37,9 @@ class ShoppingCartRecipeAdmin(admin.ModelAdmin):
     )
 
 
-class FavouriteRecipeInline(admin.StackedInline):
-    """Инлайн для модели 'FavouriteRecipeInline'."""
-    model = FavouriteRecipe
+class FavoriteRecipeInline(admin.StackedInline):
+    """Инлайн для модели 'FavoriteRecipeInline'."""
+    model = FavoriteRecipe
     extra = 0
     fields = ('recipe', 'date_added',)
     readonly_fields = ('date_added',)
@@ -54,9 +54,9 @@ class ShoppingCartInline(admin.StackedInline):
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class UserAdmin(DjangoUserAdmin):
     """Настройка панели администратора для модели 'User'."""
-    inlines = (FavouriteRecipeInline, ShoppingCartInline,)
+    inlines = (FavoriteRecipeInline, ShoppingCartInline,)
     add_fieldsets = (
         ('Регистрация пользователя', {
             'classes': ('wide',),
@@ -66,4 +66,4 @@ class CustomUserAdmin(UserAdmin):
             ),
         }),
     )
-    list_filter = UserAdmin.list_filter + ('username', 'email',)
+    list_filter = DjangoUserAdmin.list_filter + ('username', 'email',)

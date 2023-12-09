@@ -76,13 +76,17 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 # Database
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': getenv('POSTGRES_DB', 'django'),
+    #     'USER': getenv('POSTGRES_USER', 'django'),
+    #     'PASSWORD': getenv('POSTGRES_PASSWORD', ''),
+    #     'HOST': getenv('DB_HOST', ''),
+    #     'PORT': getenv('DB_PORT', 5432),
+    # }
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': getenv('POSTGRES_DB', 'django'),
-        'USER': getenv('POSTGRES_USER', 'django'),
-        'PASSWORD': getenv('POSTGRES_PASSWORD', ''),
-        'HOST': getenv('DB_HOST', ''),
-        'PORT': getenv('DB_PORT', 5432),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -127,9 +131,9 @@ REST_FRAMEWORK = {
 
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'api.serializers.UserCustomCreateSerializer',
-        'user': 'api.serializers.UserCustomSerializer',
-        'current_user': 'api.serializers.UserCustomSerializer',
+        'user_create': 'api.serializers.UserCreateSerializer',
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
         'user': ['rest_framework.permissions.AllowAny'],

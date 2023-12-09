@@ -73,7 +73,7 @@ class RecipeFilterSet(filters.FilterSet):
         для текущего пользователя.
         """
         return self.get_current_queryset(
-            queryset, name, value, user_field='user_favourites'
+            queryset, name, value, user_field='user_favorites'
         )
 
     def filter_is_in_shopping_cart(

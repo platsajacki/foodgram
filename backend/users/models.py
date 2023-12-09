@@ -35,10 +35,10 @@ class User(AbstractUser):
         verbose_name='Адрес электронной почты',
         unique=True,
     )
-    favourites = models.ManyToManyField(
+    favorites = models.ManyToManyField(
         'recipes.Recipe',
-        through='FavouriteRecipe',
-        related_name='user_favourites',
+        through='FavoriteRecipe',
+        related_name='user_favorites',
         verbose_name='Избранное',
     )
     shopping_cart = models.ManyToManyField(
@@ -89,7 +89,7 @@ class Follow(DateAdded, models.Model):
         )
 
 
-class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
+class FavoriteRecipe(UserRecipe, DateAdded, models.Model):
     """
     Промежуточная модель для хранения связи
     пользователя и его избранных рецептов.

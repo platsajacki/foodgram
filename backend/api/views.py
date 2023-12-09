@@ -1,11 +1,13 @@
 from datetime import date
 from io import BytesIO
+from typing import Any
 
 from django.db.models import QuerySet, Prefetch
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
@@ -25,7 +27,6 @@ from .serializers import (
     ShoppingCartSerializer, FavoriteRecipeSerializer,
     FollowSerializer
 )
-from .validators import valide_follow_exists
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
 from users.models import User, ShoppingCart, FavoriteRecipe, Follow
@@ -182,20 +183,27 @@ class FollowViewSet(ModelViewSet):
 
     def get_object(self) -> Follow:
         """Получает объект связанной модели подписки."""
+        return get_object_or_404(
+            Follow.objects,
+            user=self.request.user,
+            following=self.get_following()
+        )
+
+    def destroy(
+            self, request: Request, *args: Any, **kwargs: dict[str, Any]
+    ) -> Response | ValidationError:
+        """Удаляет объект, если он существует."""
+        following: User = self.get_following()
         try:
-            return (
-                Follow.objects
-                .get(
-                    user=self.request.user,
-                    following=self.get_following()
-                )
+            instance: Follow = Follow.objects.get(
+                user=request.user,
+                following=following
             )
         except Follow.DoesNotExist:
-            return None
-
-    def perform_destroy(
-            self, instance: Follow
-    ) -> None | ValidationError:
-        """Удаляет объект."""
-        valide_follow_exists(instance)
-        instance.delete()
+            raise ValidationError(
+                {
+                    'follow': 'Вы не были подписаны на данного пользователя.'
+                }
+            )
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)

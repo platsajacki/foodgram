@@ -283,10 +283,12 @@ class FavoriteRecipeSerializer(UserRecipeFieldsSet,
         Проверяет входные данные,
         проверяет рецепт и добавляет его к 'attrs'.
         """
+        user: User = self.context['request'].user
         recipe: Recipe = recipe_exist_validator(self.context['request'])
         post_request_user_recipe_validator(
-            FavoriteRecipe, self.context['request'].method,
-            recipe, self.context['request'].user
+            FavoriteRecipe,
+            self.context['request'].method,
+            recipe, user
         )
         attrs['recipe'] = recipe
         return attrs

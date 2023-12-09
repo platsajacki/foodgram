@@ -9,9 +9,12 @@ from recipes.models import Tag, Recipe, Ingredient
 from users.models import User, Follow
 
 
-def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
+def tags_unique_validator(
+        value: list[OrderedDict[str, int]]
+) -> None | ValidationError:
     """Проверяет уникальность тегов."""
-    if len(value) > len(set(value)):
+    tags: list[Tag] = value.get('tags')
+    if len(tags) > len(set(tags)):
         raise ValidationError(
             {
                 'tags':
@@ -20,9 +23,11 @@ def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
         )
 
 
-def tags_exist_validator(value: list[Tag]) -> None | ValidationError:
+def tags_exist_validator(
+        value: list[OrderedDict[str, int]]
+) -> None | ValidationError:
     """Проверяет наличие ингредиентов в запросе."""
-    if not value:
+    if not value.get('tags'):
         raise ValidationError(
             {
                 'tags':
@@ -32,10 +37,10 @@ def tags_exist_validator(value: list[Tag]) -> None | ValidationError:
 
 
 def ingredients_exist_validator(
-    value: list[OrderedDict[str, int]]
+        value: list[OrderedDict[str, int]]
 ) -> None | ValidationError:
     """Проверяет наличие ингредиентов в запросе."""
-    if not value:
+    if not value.get('ingredients'):
         raise ValidationError(
             {
                 'ingredients':
@@ -51,8 +56,9 @@ def ingredients_unique_validator(
     Проверяет уникальность ингредиентов
     по ключу 'ingredient' в списке OrderedDict.
     """
+    ingredients: list[OrderedDict[str, int]] = value.get('ingredients')
     seen_ingredients: set = set()
-    for item in value:
+    for item in ingredients:
         ingredient_id: int = item.get('ingredient')
         if ingredient_id in seen_ingredients:
             raise ValidationError(

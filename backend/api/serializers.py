@@ -89,6 +89,12 @@ class RecipeSerializer(serializers.ModelSerializer):
             'ingredients', 'tags',
             'is_favorited', 'is_in_shopping_cart',
         )
+        validators = [
+            ingredients_exist_validator,
+            ingredients_unique_validator,
+            tags_exist_validator,
+            tags_unique_validator,
+        ]
 
     def relate_user_recipe(self, related_queryset: QuerySet) -> bool:
         """
@@ -121,18 +127,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         в списке покупок текущего пользователя.
         """
         return self.relate_user_recipe(obj.shoppingcart_set)
-
-    def validate(
-            self, attrs: dict[str, Any]
-    ) -> dict[str, Any] | serializers.ValidationError:
-        """Проверяет входные данные."""
-        ingredients: list[OrderedDict[str, int]] = attrs.get('ingredients')
-        ingredients_exist_validator(ingredients)
-        ingredients_unique_validator(ingredients)
-        tags: list[Tag] = attrs.get('tags')
-        tags_exist_validator(tags)
-        tags_unique_validator(tags)
-        return attrs
 
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""

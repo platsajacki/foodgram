@@ -132,7 +132,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""
         if self.context['request'].method in ['POST', 'PACTH']:
-            instance = self.context['view'].get_queryset().get(id=instance.id)
+            instance: Recipe = (
+                self.context['view'].get_queryset().get(id=instance.id)
+            )
         representation: dict[str, str] = super().to_representation(instance)
         ingredient_data: list[dict] = []
         for recipe_ingredient in instance.recipeingredient_set.all():

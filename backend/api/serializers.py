@@ -129,14 +129,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             else False
         )
 
-    def to_representation(self, instance: Recipe) -> dict[str, str]:
-        """Готовит данные для отправки в ответе."""
-        if self.context['request'].method in ['POST', 'PACTH']:
-            instance: Recipe = (
-                self.context['view'].get_queryset().get(id=instance.id)
-            )
-        representation: dict[str, str] = super().to_representation(instance)
-        ingredient_data: list[dict] = []
+    def _prepare_ingredients(self, instance: Recipe) -> list[dict[str, Any]]:
+        """Подготавливает данные об ингредиентах для сериализации."""
+        ingredient_data: list = []
         for recipe_ingredient in instance.recipeingredient_set.all():
             ingredient: dict[str, Any] = {
                 'id': recipe_ingredient.ingredient.id,
@@ -147,11 +142,24 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'amount': recipe_ingredient.amount,
             }
             ingredient_data.append(ingredient)
-        tags_data: list[dict] = []
+        return ingredient_data
+
+    def _prepare_tags(self, instance: Recipe) -> list[dict[str, Any]]:
+        """Подготавливает данные о тегах для сериализации."""
+        tags_data: list = []
         for tag in instance.tags.all():
             tags_data.append(TagSerializer(tag).data)
-        representation['ingredients'] = ingredient_data
-        representation['tags'] = tags_data
+        return tags_data
+
+    def to_representation(self, instance: Recipe) -> dict[str, Any]:
+        """Готовит данные для отправки в ответе."""
+        if self.context['request'].method in ['POST', 'PACTH']:
+            instance: Recipe = (
+                self.context['view'].get_queryset().get(id=instance.id)
+            )
+        representation: dict[str, str] = super().to_representation(instance)
+        representation['ingredients'] = self._prepare_ingredients(instance)
+        representation['tags'] = self._prepare_tags(instance)
         return representation
 
     def create(self, validated_data: dict[str, Any]) -> Recipe:

@@ -1,11 +1,13 @@
 from datetime import date
 from io import BytesIO
+from typing import Any
 
-from django.db.models import QuerySet, Sum, Prefetch
+from django.db.models import QuerySet, Exists
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from djoser.views import UserViewSet
+from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
@@ -20,18 +22,17 @@ from .filters import RecipeFilterSet
 from .mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .permissions import IsAuthor
 from .serializers import (
-    UserCustomSerializer, TagSerializer,
+    UserSerializer, TagSerializer,
     IngredientSerializer, RecipeSerializer,
-    ShoppingCartSerializer, FavouriteRecipeSerializer,
+    ShoppingCartSerializer, FavoriteRecipeSerializer,
     FollowSerializer
 )
-from .validators import valide_follow_exists
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
-from users.models import User, ShoppingCart, FavouriteRecipe, Follow
+from users.models import User, ShoppingCart, FavoriteRecipe, Follow
 
 
-class UserCustomViewSet(UserViewSet):
+class UserViewSet(DjoserUserViewSet):
     """Представление, отвечающее за работу с пользователями в системе."""
     http_method_names = ['get', 'post']
 
@@ -42,14 +43,13 @@ class UserCustomViewSet(UserViewSet):
         """
         if not self.request.user.is_authenticated:
             return User.objects.all()
-        return User.objects.prefetch_related(
-            Prefetch(
-                'followings',
-                queryset=(
-                    Follow.with_related
+        return (
+            User.objects
+            .annotate(
+                follower=Exists(
+                    queryset=Follow.with_related
                     .filter(user=self.request.user)
-                ),
-                to_attr='follower'
+                )
             )
         )
 
@@ -61,7 +61,7 @@ class UserCustomViewSet(UserViewSet):
     def me(self, request: Request) -> Response:
         """Получает информацию о текущем авторизованном пользователе."""
         user: User = self.get_queryset().get(id=request.user.id)
-        serializer: UserCustomSerializer = self.get_serializer(user)
+        serializer: UserSerializer = self.get_serializer(user)
         return Response(serializer.data)
 
 
@@ -111,16 +111,8 @@ class RecipeViewSet(ModelViewSet):
             return Recipe.with_related.all()
         return (
             Recipe.with_related
-            .prefetch_related(
-                Prefetch(
-                    'author__followings',
-                    queryset=(
-                        Follow.with_related
-                        .filter(user=self.request.user)
-                    ),
-                    to_attr='follower'
-                )
-            ))
+            .annotate_user_flags(user=self.request.user)
+        )
 
     def perform_create(self, serializer: RecipeSerializer) -> None:
         """Создаем рецепт и присваем текущего пользователя."""
@@ -141,32 +133,17 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
         ingredients: QuerySet = (
             ShoppingCart.objects
             .filter(user=request.user)
-            .values(
-                'recipe__recipeingredient__ingredient__name',
-            )
-            .annotate(
-                total_amount=Sum(
-                    'recipe__recipeingredient__amount',
-                )
-            )
-            .order_by(
-                'recipe__recipeingredient__ingredient__name',
-            )
-            .values(
-                'recipe__recipeingredient__ingredient__measurement_unit',
-                'recipe__recipeingredient__ingredient__name',
-                'total_amount',
-            )
+            .get_ingredients_shoppingcart()
         )
         buffer: BytesIO = get_xls_shopping_cart(ingredients)
         today: date = timezone.now().date()
         return FileResponse(buffer, filename=f'Список покупок_{today}.xls')
 
 
-class FavouriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
+class FavoriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):
     """Представление, отвечающее за работу с избранным."""
-    queryset = FavouriteRecipe.objects.select_related('user', 'recipe')
-    serializer_class = FavouriteRecipeSerializer
+    queryset = FavoriteRecipe.objects.select_related('user', 'recipe')
+    serializer_class = FavoriteRecipeSerializer
     http_method_names = ['post', 'delete']
 
 
@@ -196,20 +173,27 @@ class FollowViewSet(ModelViewSet):
 
     def get_object(self) -> Follow:
         """Получает объект связанной модели подписки."""
+        return get_object_or_404(
+            Follow.objects,
+            user=self.request.user,
+            following=self.get_following()
+        )
+
+    def destroy(
+            self, request: Request, *args: Any, **kwargs: dict[str, Any]
+    ) -> Response | ValidationError:
+        """Удаляет объект, если он существует."""
+        following: User = self.get_following()
         try:
-            return (
-                Follow.objects
-                .get(
-                    user=self.request.user,
-                    following=self.get_following()
-                )
+            instance: Follow = Follow.objects.get(
+                user=request.user,
+                following=following
             )
         except Follow.DoesNotExist:
-            return None
-
-    def perform_destroy(
-            self, instance: Follow
-    ) -> None | ValidationError:
-        """Удаляет объект."""
-        valide_follow_exists(instance)
-        instance.delete()
+            raise ValidationError(
+                {
+                    'follow': 'Вы не были подписаны на данного пользователя.'
+                }
+            )
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)

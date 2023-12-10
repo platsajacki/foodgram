@@ -85,7 +85,6 @@ class Recipe(NameString, models.Model):
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        unique_together = ('name', 'author',)
 
 
 class RecipeIngredient(models.Model):

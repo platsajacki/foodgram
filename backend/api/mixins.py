@@ -1,13 +1,13 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from recipes.models import Recipe
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from .fields import Base64ImageField
 from .validators import valide_user_has_recipe
 from users.models import User, Follow
 

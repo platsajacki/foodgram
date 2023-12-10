@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from .managers import UserManager, FollowManager, FollowQuerySet
+from .managers import (
+    UserManager, FollowManager,
+    FollowQuerySet, ShoppingCartQuerySet
+)
 from core.models import UserRecipe, DateAdded
 
 
@@ -35,10 +38,10 @@ class User(AbstractUser):
         verbose_name='Адрес электронной почты',
         unique=True,
     )
-    favourites = models.ManyToManyField(
+    favorites = models.ManyToManyField(
         'recipes.Recipe',
-        through='FavouriteRecipe',
-        related_name='user_favourites',
+        through='FavoriteRecipe',
+        related_name='user_favorites',
         verbose_name='Избранное',
     )
     shopping_cart = models.ManyToManyField(
@@ -89,7 +92,7 @@ class Follow(DateAdded, models.Model):
         )
 
 
-class FavouriteRecipe(UserRecipe, DateAdded, models.Model):
+class FavoriteRecipe(UserRecipe, DateAdded, models.Model):
     """
     Промежуточная модель для хранения связи
     пользователя и его избранных рецептов.
@@ -112,6 +115,8 @@ class ShoppingCart(UserRecipe, DateAdded, models.Model):
     Промежуточная модель для хранения связи
     пользователя и рецептов в его корзине.
     """
+    objects = ShoppingCartQuerySet.as_manager()
+
     class Meta:
         ordering = ['-date_added', 'user']
         unique_together = ['user', 'recipe']

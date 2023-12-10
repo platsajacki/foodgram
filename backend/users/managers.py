@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.contrib.auth.base_user import BaseUserManager
-from django.db.models import QuerySet, Manager
+from django.db.models import QuerySet, Manager, Sum
 
 
 class UserManager(BaseUserManager):
@@ -105,4 +105,32 @@ class FollowManager(Manager):
         return (
             FollowQuerySet(self.model)
             .related_tables()
+        )
+
+
+class ShoppingCartQuerySet(QuerySet):
+    """QuerySet для работы с моделью ShoppingCart."""
+    def get_ingredients_shoppingcart(self) -> 'ShoppingCartQuerySet':
+        """
+        Получает ингредиенты, их количство и единицу измерения
+        для корзины покупок.
+        """
+        return (
+            self
+            .values(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .annotate(
+                total_amount=Sum(
+                    'recipe__recipeingredient__amount',
+                )
+            )
+            .order_by(
+                'recipe__recipeingredient__ingredient__name',
+            )
+            .values(
+                'recipe__recipeingredient__ingredient__measurement_unit',
+                'recipe__recipeingredient__ingredient__name',
+                'total_amount',
+            )
         )

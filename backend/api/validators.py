@@ -1,16 +1,20 @@
 from collections import OrderedDict
+from typing import Any
 
 from django.db.models import Model
 from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
 from recipes.models import Tag, Recipe, Ingredient
-from users.models import User, Follow
+from users.models import User
 
 
-def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
+def tags_unique_validator(
+        value: list[OrderedDict[str, int]]
+) -> None | ValidationError:
     """Проверяет уникальность тегов."""
-    if len(value) > len(set(value)):
+    tags: list[Tag] = value.get('tags')
+    if len(tags) > len(set(tags)):
         raise ValidationError(
             {
                 'tags':
@@ -19,9 +23,11 @@ def tags_unique_validator(value: list[Tag]) -> None | ValidationError:
         )
 
 
-def tags_exist_validator(value: list[Tag]) -> None | ValidationError:
+def tags_exist_validator(
+        value: list[OrderedDict[str, int]]
+) -> None | ValidationError:
     """Проверяет наличие ингредиентов в запросе."""
-    if not value:
+    if not value.get('tags'):
         raise ValidationError(
             {
                 'tags':
@@ -31,10 +37,10 @@ def tags_exist_validator(value: list[Tag]) -> None | ValidationError:
 
 
 def ingredients_exist_validator(
-    value: list[OrderedDict[str, int]]
+        value: list[OrderedDict[str, int]]
 ) -> None | ValidationError:
     """Проверяет наличие ингредиентов в запросе."""
-    if not value:
+    if not value.get('ingredients'):
         raise ValidationError(
             {
                 'ingredients':
@@ -50,8 +56,9 @@ def ingredients_unique_validator(
     Проверяет уникальность ингредиентов
     по ключу 'ingredient' в списке OrderedDict.
     """
+    ingredients: list[OrderedDict[str, int]] = value.get('ingredients')
     seen_ingredients: set = set()
-    for item in value:
+    for item in ingredients:
         ingredient_id: int = item.get('ingredient')
         if ingredient_id in seen_ingredients:
             raise ValidationError(
@@ -63,20 +70,20 @@ def ingredients_unique_validator(
         seen_ingredients.add(ingredient_id)
 
 
-def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
+def get_ingredient_or_400(
+        all_id: tuple[int], id: int
+) -> Ingredient | ValidationError:
     """
     Получает объект ингредиента по его ID
     или вызывает 'ValidationError', если объекта не существует.
     """
-    try:
-        ingredient: Ingredient = Ingredient.objects.get(id=id)
-    except Ingredient.DoesNotExist:
+    print(id, all_id)
+    if id not in all_id:
         raise ValidationError(
             {
                 'ingredients': 'Такого ингредиента не существует.'
             }
         )
-    return ingredient
 
 
 def valide_user_has_recipe(
@@ -133,11 +140,12 @@ def post_request_user_recipe_validator(
         )
 
 
-def valide_follow_exists(instance: Follow | None) -> ValidationError | None:
-    """Проверяет наличие подписки в у пользователя."""
-    if not instance:
+def valide_image_exists(value: str | Any) -> None | ValidationError:
+    """Проверяет наличие изображения."""
+    if not value:
         raise ValidationError(
             {
-                'follow': 'Вы не были подписаны на данного пользователя.'
+                'image':
+                'Без изображение блюда нельзя опубликовать рецепт.'
             }
         )

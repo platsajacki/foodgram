@@ -1,4 +1,6 @@
-from django.db.models import QuerySet, Manager
+from django.db.models import QuerySet, Manager, Exists, OuterRef
+
+from users.models import User
 
 
 class RecipeQuerySet(QuerySet):
@@ -13,6 +15,32 @@ class RecipeQuerySet(QuerySet):
             .prefetch_related(
                 'tags', 'recipeingredient_set__ingredient',
                 'favoriterecipe_set', 'shoppingcart_set',
+            )
+        )
+
+    def annotate_user_flags(self, user) -> 'RecipeQuerySet':
+        """
+        Аннотирует флаги пользователя для рецептов,
+        проверяя, есть ли рецепт в его списке избранного
+        или корзине покупок.
+        """
+        return (
+            self
+            .annotate(
+                is_in_shopping_cart=Exists(
+                    queryset=User.objects.filter(
+                        id=user.id,
+                        shoppingcart=OuterRef('pk')
+                    )
+                )
+            )
+            .annotate(
+                is_favorited=Exists(
+                    queryset=User.objects.filter(
+                        id=user.id,
+                        favorites=OuterRef('pk')
+                    )
+                )
             )
         )
 

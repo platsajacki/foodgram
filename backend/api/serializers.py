@@ -2,7 +2,6 @@ from collections import OrderedDict
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import QuerySet
 from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer,
     UserSerializer as DjoserUserSerializer
@@ -96,9 +95,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             tags_unique_validator,
         ]
 
-    def relate_user_recipe(self, related_queryset: QuerySet) -> bool:
+    def _check_user(self) -> bool | None:
         """
-        Определяет, связан ли текущий пользователь с переданным рецептом.
         Если анонимный пользователь делает запрос или рецепт только сделан
         возвращается False.
         """
@@ -108,25 +106,28 @@ class RecipeSerializer(serializers.ModelSerializer):
             or self.context['request'] == 'POST'
         ):
             return False
-        return (
-            related_queryset
-            .filter(user=current_user)
-            .exists()
-        )
 
     def get_is_favorited(self, obj: Recipe) -> bool:
         """
         Получает информацию, отмечен ли переданный рецепт
         как избранный для текущего пользователя.
         """
-        return self.relate_user_recipe(obj.favoriterecipe_set)
+        return (
+            obj.is_favorited
+            if self._check_user() is None
+            else False
+        )
 
     def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
         """
         Получает информацию, находится ли переданный рецепт
         в списке покупок текущего пользователя.
         """
-        return self.relate_user_recipe(obj.shoppingcart_set)
+        return (
+            obj.is_in_shopping_cart
+            if self._check_user() is None
+            else False
+        )
 
     def to_representation(self, instance: Recipe) -> dict[str, str]:
         """Готовит данные для отправки в ответе."""

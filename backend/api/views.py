@@ -122,6 +122,7 @@ class RecipeViewSet(ModelViewSet):
                     to_attr='follower'
                 )
             )
+            .annotate_user_flags(user=self.request.user)
         )
 
     def perform_create(self, serializer: RecipeSerializer) -> None:

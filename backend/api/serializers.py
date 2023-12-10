@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import QuerySet
 from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer,
     UserSerializer as DjoserUserSerializer
@@ -69,7 +70,6 @@ class IngredientSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Ingredient."""
     image = Base64ImageField(
-        represent_in_base64=True,
         validators=[valide_image_exists]
     )
     ingredients = IngredientRecipeWriteField(
@@ -161,15 +161,19 @@ class RecipeSerializer(serializers.ModelSerializer):
             validated_data.pop('ingredients')
         )
         tags_data: list[Tag] = validated_data.pop('tags')
+        all_ingredients: QuerySet = Ingredient.objects.all()
         for ingredient_data in ingredients_data:
-            ingredient_data['ingredient'] = (
-                get_ingredient_or_400(ingredient_data['ingredient'])
+            get_ingredient_or_400(
+                all_ingredients.values_list('id', flat=True),
+                ingredient_data['ingredient']
             )
         recipe: Recipe = Recipe.objects.create(**validated_data)
         recipe_ingredients = [
             RecipeIngredient(
                 recipe=recipe,
-                ingredient=ingredient_data['ingredient'],
+                ingredient=all_ingredients.get(
+                    id=ingredient_data['ingredient']
+                ),
                 amount=ingredient_data['amount'],
             )
             for ingredient_data in ingredients_data
@@ -194,16 +198,20 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data: list[OrderedDict[str, int]] = (
             validated_data.get('ingredients')
         )
+        all_ingredients: QuerySet = Ingredient.objects.all()
         if ingredients_data:
             recipe_ingredients = []
             for ingredient_data in ingredients_data:
-                ingredient: Ingredient = (
-                    get_ingredient_or_400(ingredient_data['ingredient'])
+                get_ingredient_or_400(
+                    all_ingredients.values_list('id', flat=True),
+                    ingredient_data['ingredient']
                 )
                 recipe_ingredients.append(
                     RecipeIngredient(
                         recipe=instance,
-                        ingredient=ingredient,
+                        ingredient=all_ingredients.get(
+                            id=ingredient_data['ingredient']
+                        ),
                         amount=ingredient_data['amount'],
                     )
                 )
@@ -340,7 +348,7 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
         """
         Определяет подаписан ли запрашиваемый пользователь на текущего.
         """
-        return self._get_is_subscribed(obj.following)
+        return self._get_is_subscribed(obj)
 
     def get_recipes_count(self, obj: Follow) -> int:
         """Считает количество рецептов у подписки."""

@@ -2,7 +2,7 @@ from datetime import date
 from io import BytesIO
 from typing import Any
 
-from django.db.models import QuerySet, Prefetch
+from django.db.models import QuerySet, Exists
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -43,14 +43,13 @@ class UserViewSet(DjoserUserViewSet):
         """
         if not self.request.user.is_authenticated:
             return User.objects.all()
-        return User.objects.prefetch_related(
-            Prefetch(
-                'followings',
-                queryset=(
-                    Follow.with_related
+        return (
+            User.objects
+            .annotate(
+                follower=Exists(
+                    queryset=Follow.with_related
                     .filter(user=self.request.user)
-                ),
-                to_attr='follower'
+                )
             )
         )
 
@@ -112,16 +111,6 @@ class RecipeViewSet(ModelViewSet):
             return Recipe.with_related.all()
         return (
             Recipe.with_related
-            .prefetch_related(
-                Prefetch(
-                    'author__followings',
-                    queryset=(
-                        Follow.with_related
-                        .filter(user=self.request.user)
-                    ),
-                    to_attr='follower'
-                )
-            )
             .annotate_user_flags(user=self.request.user)
         )
 

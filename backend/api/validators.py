@@ -70,20 +70,20 @@ def ingredients_unique_validator(
         seen_ingredients.add(ingredient_id)
 
 
-def get_ingredient_or_400(id: int) -> Ingredient | ValidationError:
+def get_ingredient_or_400(
+        all_id: tuple[int], id: int
+) -> Ingredient | ValidationError:
     """
     Получает объект ингредиента по его ID
     или вызывает 'ValidationError', если объекта не существует.
     """
-    try:
-        ingredient: Ingredient = Ingredient.objects.get(id=id)
-    except Ingredient.DoesNotExist:
+    print(id, all_id)
+    if id not in all_id:
         raise ValidationError(
             {
                 'ingredients': 'Такого ингредиента не существует.'
             }
         )
-    return ingredient
 
 
 def valide_user_has_recipe(

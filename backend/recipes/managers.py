@@ -1,6 +1,6 @@
-from django.db.models import QuerySet, Manager, Exists, OuterRef
+from django.db.models import QuerySet, Manager, Exists, OuterRef, Prefetch
 
-from users.models import User
+from users.models import User, Follow
 
 
 class RecipeQuerySet(QuerySet):
@@ -18,7 +18,20 @@ class RecipeQuerySet(QuerySet):
             )
         )
 
-    def annotate_user_flags(self, user) -> 'RecipeQuerySet':
+
+class RecipeManager(Manager):
+    """Manager для работы с моделью Recipe."""
+    def get_queryset(self) -> 'RecipeManager':
+        """
+        Возвращает QuerySet для модели Recipe
+        с выбранными связанными таблицами.
+        """
+        return (
+            RecipeQuerySet(self.model)
+            .related_tables()
+        )
+
+    def annotate_user_flags(self, user: User) -> 'RecipeQuerySet':
         """
         Аннотирует флаги пользователя для рецептов,
         проверяя, есть ли рецепт в его списке избранного
@@ -42,17 +55,14 @@ class RecipeQuerySet(QuerySet):
                     )
                 )
             )
-        )
-
-
-class RecipeManager(Manager):
-    """Manager для работы с моделью Recipe."""
-    def get_queryset(self) -> 'RecipeManager':
-        """
-        Возвращает QuerySet для модели Recipe
-        с выбранными связанными таблицами.
-        """
-        return (
-            RecipeQuerySet(self.model)
-            .related_tables()
+            .prefetch_related(
+                Prefetch(
+                    'author__followings',
+                    queryset=(
+                        Follow.with_related
+                        .filter(user=user)
+                    ),
+                    to_attr='follower'
+                )
+            )
         )

@@ -1,15 +1,12 @@
 from datetime import date
 from io import BytesIO
-from typing import Any
 
 from django.db.models import QuerySet, Exists
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -165,35 +162,16 @@ class FollowViewSet(ModelViewSet):
             .all()
         )
 
-    def get_following(self) -> User:
+    def get_following(self) -> User | Http404:
         """Получает подписку."""
         return get_object_or_404(
             User, id=self.kwargs.get('id')
         )
 
-    def get_object(self) -> Follow:
+    def get_object(self) -> Follow | Http404:
         """Получает объект связанной модели подписки."""
         return get_object_or_404(
             Follow.objects,
             user=self.request.user,
             following=self.get_following()
         )
-
-    def destroy(
-            self, request: Request, *args: Any, **kwargs: dict[str, Any]
-    ) -> Response | ValidationError:
-        """Удаляет объект, если он существует."""
-        following: User = self.get_following()
-        try:
-            instance: Follow = Follow.objects.get(
-                user=request.user,
-                following=following
-            )
-        except Follow.DoesNotExist:
-            raise ValidationError(
-                {
-                    'follow': 'Вы не были подписаны на данного пользователя.'
-                }
-            )
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)

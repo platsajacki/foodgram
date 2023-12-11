@@ -86,18 +86,6 @@ def get_ingredient_or_400(
         )
 
 
-def valide_user_has_recipe(
-        related_model: Model | None
-) -> ValidationError | None:
-    """Проверяет наличие рецепта в у пользователя."""
-    if not related_model:
-        raise ValidationError(
-            {
-                'recipe': 'Рецепт не был ранее добавлен.'
-            }
-        )
-
-
 def recipe_exist_validator(request: Request) -> Recipe | ValidationError:
     """
     Проверяет наличие рецепта в базе и возвращает его или ValidationError.

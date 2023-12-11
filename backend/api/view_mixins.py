@@ -1,11 +1,9 @@
 from django.db.models import Model
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from recipes.models import Recipe
-from rest_framework.exceptions import ValidationError
-
-from .validators import valide_user_has_recipe
 
 
 class GetNonePaginatorAllowAny:
@@ -33,17 +31,10 @@ class UserRecipeViewSet:
             Recipe, id=self.kwargs.get('id')
         )
 
-    def get_object(self) -> Model | None:
+    def get_object(self) -> Model | Http404:
         """Получает объект связанной модели пользователя."""
-        try:
-            return self.queryset.model.objects.get(
-                user=self.request.user,
-                recipe=self.get_recipe()
-            )
-        except self.queryset.model.DoesNotExist:
-            return None
-
-    def perform_destroy(self, instance: Model) -> None | ValidationError:
-        """Удаляет объект объект связанной модели пользователя."""
-        valide_user_has_recipe(instance)
-        instance.delete()
+        return get_object_or_404(
+            self.queryset.model.objects,
+            user=self.request.user,
+            recipe=self.get_recipe()
+        )

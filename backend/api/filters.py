@@ -3,7 +3,7 @@ from django.db.models import QuerySet
 from django_filters import rest_framework as filters
 from django_filters.widgets import BooleanWidget
 
-from recipes.models import Recipe
+from recipes.models import Recipe, Tag
 from users.models import User
 
 
@@ -15,9 +15,10 @@ class RecipeFilterSet(filters.FilterSet):
     author = filters.NumberFilter(
         field_name='author__id',
     )
-    tags = filters.CharFilter(
+    tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
-        method='filter_tags',
+        to_field_name='slug',
+        queryset=Tag.objects.all(),
     )
     is_favorited = filters.BooleanFilter(
         method='filter_is_favorited',
@@ -34,16 +35,6 @@ class RecipeFilterSet(filters.FilterSet):
             'author',
             'tags',
         ]
-
-    def filter_tags(
-            self, queryset: QuerySet, name: str, value: bool
-    ) -> QuerySet[Recipe]:
-        """
-        Фильтрует рецепты по тегам.
-        Позволяет использовать несколько значений тегов для фильтрации.
-        """
-        tags: list[str] = self.request.GET.getlist('tags', '')
-        return queryset.filter(tags__slug__in=tags).distinct()
 
     def get_current_queryset(
             self, queryset: QuerySet, name: str,

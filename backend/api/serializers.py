@@ -68,7 +68,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Ingredient."""
+    """Сериализатор для модели Recipe."""
     image = Base64ImageField(
         validators=[valide_image_exists]
     )

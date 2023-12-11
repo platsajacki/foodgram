@@ -19,7 +19,6 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .filters import RecipeFilterSet
-from .mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .permissions import IsAuthor
 from .serializers import (
     UserSerializer, TagSerializer,
@@ -27,6 +26,7 @@ from .serializers import (
     ShoppingCartSerializer, FavoriteRecipeSerializer,
     FollowSerializer
 )
+from .view_mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
 from users.models import User, ShoppingCart, FavoriteRecipe, Follow

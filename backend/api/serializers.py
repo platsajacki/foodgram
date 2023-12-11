@@ -11,7 +11,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from .fields import IngredientRecipeWriteField
-from .mixins import UserRecipeFieldsSet, SubscribedMethodField
+from .serializer_mixins import UserRecipeFieldsSet, SubscribedMethodField
 from .validators import (
     tags_unique_validator, ingredients_exist_validator, valide_image_exists,
     ingredients_unique_validator, get_ingredient_or_400, tags_exist_validator,

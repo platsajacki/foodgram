@@ -10,7 +10,7 @@ from .fields import IngredientRecipeWriteField
 from .serializer_mixins import UserRecipeFieldsSet
 from .validators import (
     tags_unique_validator, ingredients_exist_validator, valide_image_exists,
-    ingredients_unique_validator, get_ingredient_or_400, tags_exist_validator,
+    ingredients_unique_validator, get_ingredients_or_400, tags_exist_validator,
     recipe_exist_validator, post_request_user_recipe_validator
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
@@ -121,12 +121,13 @@ class RecipeSerializer(serializers.ModelSerializer):
             validated_data.pop('ingredients')
         )
         tags_data: list[Tag] = validated_data.pop('tags')
-        all_ingredients: QuerySet = Ingredient.objects.all()
-        for ingredient_data in ingredients_data:
-            get_ingredient_or_400(
-                all_ingredients.values_list('id', flat=True),
-                ingredient_data['ingredient']
-            )
+        all_id: set[int] = set(
+            ingredient_data['ingredient']
+            for ingredient_data in ingredients_data
+        )
+        all_ingredients: QuerySet[Ingredient] | serializers.ValidationError = (
+            get_ingredients_or_400(all_id)
+        )
         recipe: Recipe = Recipe.objects.create(**validated_data)
         recipe_ingredients = [
             RecipeIngredient(
@@ -158,14 +159,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data: list[OrderedDict[str, int]] = (
             validated_data.get('ingredients')
         )
-        all_ingredients: QuerySet = Ingredient.objects.all()
         if ingredients_data:
+            all_id: set[int] = set(
+                ingredient_data['ingredient']
+                for ingredient_data in ingredients_data
+            )
+            all_ingredients: QuerySet | serializers.ValidationError = (
+                get_ingredients_or_400(all_id)
+            )
             recipe_ingredients = []
             for ingredient_data in ingredients_data:
-                get_ingredient_or_400(
-                    all_ingredients.values_list('id', flat=True),
-                    ingredient_data['ingredient']
-                )
                 recipe_ingredients.append(
                     RecipeIngredient(
                         recipe=instance,

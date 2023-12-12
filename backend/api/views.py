@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from django.db.models import QuerySet, Exists
+from django.db.models import QuerySet, Exists, OuterRef
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -43,9 +43,12 @@ class UserViewSet(DjoserUserViewSet):
         return (
             User.objects
             .annotate(
-                follower=Exists(
+                is_subscribed=Exists(
                     queryset=Follow.with_related
-                    .filter(user=self.request.user)
+                    .filter(
+                        user=self.request.user,
+                        following=OuterRef('pk')
+                    )
                 )
             )
         )
@@ -105,7 +108,7 @@ class RecipeViewSet(ModelViewSet):
         связанных объектов Follow, Ingredient, Tag для текущего пользователя.
         """
         if not self.request.user.is_authenticated:
-            return Recipe.with_related.all()
+            return Recipe.with_related.select_related('author')
         return (
             Recipe.with_related
             .annotate_user_flags(user=self.request.user)
@@ -158,8 +161,15 @@ class FollowViewSet(ModelViewSet):
         return (
             Follow.with_related
             .filter(user=self.request.user)
-            .prefetch_related('following__recipes')
-            .all()
+            .annotate(
+                is_subscribed=Exists(
+                    queryset=Follow.with_related
+                    .filter(
+                        user=self.request.user,
+                        following=OuterRef('pk')
+                    )
+                )
+            )
         )
 
     def get_following(self) -> User | Http404:

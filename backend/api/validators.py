@@ -77,7 +77,6 @@ def get_ingredient_or_400(
     Получает объект ингредиента по его ID
     или вызывает 'ValidationError', если объекта не существует.
     """
-    print(id, all_id)
     if id not in all_id:
         raise ValidationError(
             {

@@ -91,7 +91,9 @@ class FollowQuerySet(QuerySet):
         return (
             self
             .select_related('following', 'user')
-            .prefetch_related('following', 'user')
+            .prefetch_related(
+                'following', 'user', 'following__recipes'
+            )
         )
 
 

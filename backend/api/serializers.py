@@ -11,7 +11,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from .fields import IngredientRecipeWriteField
-from .serializer_mixins import UserRecipeFieldsSet, SubscribedMethodField
+from .serializer_mixins import UserRecipeFieldsSet
 from .validators import (
     tags_unique_validator, ingredients_exist_validator, valide_image_exists,
     ingredients_unique_validator, get_ingredient_or_400, tags_exist_validator,
@@ -35,16 +35,14 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
         return value
 
 
-class UserSerializer(SubscribedMethodField, DjoserUserSerializer):
+class UserSerializer(DjoserUserSerializer):
     """Сериализатор для модели User."""
+    is_subscribed = serializers.BooleanField(
+        read_only=True, default=False
+    )
+
     class Meta(DjoserUserSerializer.Meta):
         fields = DjoserUserSerializer.Meta.fields + ('is_subscribed',)
-
-    def get_is_subscribed(self, obj: User) -> bool:
-        """
-        Определяет подаписан ли запрашиваемый пользователь на текущего.
-        """
-        return self._get_is_subscribed(obj)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -323,7 +321,7 @@ class FavoriteRecipeSerializer(UserRecipeFieldsSet,
         )
 
 
-class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
+class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Follow."""
     id = serializers.IntegerField(
         source='following.id', read_only=True
@@ -344,7 +342,12 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
         source='following.recipes',
         many=True, read_only=True
     )
-    recipes_count = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField(
+        read_only=True
+    )
+    is_subscribed = serializers.BooleanField(
+        read_only=True, default=False
+    )
 
     class Meta:
         model = Follow
@@ -353,12 +356,6 @@ class FollowSerializer(SubscribedMethodField, serializers.ModelSerializer):
             'last_name', 'recipes', 'recipes_count',
             'is_subscribed'
         )
-
-    def get_is_subscribed(self, obj: Follow) -> bool:
-        """
-        Определяет подаписан ли запрашиваемый пользователь на текущего.
-        """
-        return self._get_is_subscribed(obj)
 
     def get_recipes_count(self, obj: Follow) -> int:
         """Считает количество рецептов у подписки."""

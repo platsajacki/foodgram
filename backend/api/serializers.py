@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from typing import Any
 
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer,
@@ -74,8 +73,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         write_only=True, many=True
     )
     author = UserSerializer(read_only=True)
-    is_favorited = serializers.SerializerMethodField(read_only=True)
-    is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
+    is_favorited = serializers.BooleanField(
+        read_only=True, default=False
+    )
+    is_in_shopping_cart = serializers.BooleanField(
+        read_only=True, default=False
+    )
 
     class Meta:
         model = Recipe
@@ -92,40 +95,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             tags_exist_validator,
             tags_unique_validator,
         ]
-
-    def _check_user(self) -> bool | None:
-        """
-        Если анонимный пользователь делает запрос или рецепт только сделан
-        возвращается False.
-        """
-        current_user: User = self.context['request'].user
-        if (
-            isinstance(current_user, AnonymousUser)
-            or self.context['request'] == 'POST'
-        ):
-            return False
-
-    def get_is_favorited(self, obj: Recipe) -> bool:
-        """
-        Получает информацию, отмечен ли переданный рецепт
-        как избранный для текущего пользователя.
-        """
-        return (
-            obj.is_favorited
-            if self._check_user() is None
-            else False
-        )
-
-    def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
-        """
-        Получает информацию, находится ли переданный рецепт
-        в списке покупок текущего пользователя.
-        """
-        return (
-            obj.is_in_shopping_cart
-            if self._check_user() is None
-            else False
-        )
 
     def _prepare_ingredients(self, instance: Recipe) -> list[dict[str, Any]]:
         """Подготавливает данные об ингредиентах для сериализации."""

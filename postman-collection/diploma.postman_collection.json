@@ -4925,18 +4925,19 @@
 							},
 							"request": {
 								"auth": {
-									"type": "noauth"
-								},
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "",
-									"options": {
-										"raw": {
-											"language": "json"
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "Token {{userToken}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "Authorization",
+											"type": "string"
 										}
-									}
+									]
 								},
 								"url": {
 									"raw": "{{baseUrl}}/api/recipes/{{firstRecipeId}}/",

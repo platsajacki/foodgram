@@ -107,6 +107,7 @@ class RecipeViewSet(ModelViewSet):
         Получает запрос для модели и выполняет предварительную загрузку
         связанных объектов Follow, Ingredient, Tag для текущего пользователя.
         """
+        print(self.request.user.is_authenticated)
         if not self.request.user.is_authenticated:
             return Recipe.with_related.select_related('author')
         return (

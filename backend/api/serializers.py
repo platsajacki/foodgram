@@ -294,7 +294,7 @@ class FollowSerializer(serializers.ModelSerializer):
         source='following.recipes',
         many=True, read_only=True
     )
-    recipes_count = serializers.SerializerMethodField(
+    recipes_count = serializers.IntegerField(
         read_only=True
     )
     is_subscribed = serializers.BooleanField(
@@ -307,17 +307,6 @@ class FollowSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'first_name',
             'last_name', 'recipes', 'recipes_count',
             'is_subscribed'
-        )
-
-    def get_recipes_count(self, obj: Follow) -> int:
-        """Считает количество рецептов у подписки."""
-        return (
-            self.context['view']
-            .get_queryset()
-            .filter(following=obj.following)
-            .values('following__recipes')
-            .exclude(following__recipes__isnull=True)
-            .count()
         )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:

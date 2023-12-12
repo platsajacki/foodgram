@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from django.db.models import QuerySet, Exists, OuterRef
+from django.db.models import QuerySet, Exists, OuterRef, Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -168,7 +168,8 @@ class FollowViewSet(ModelViewSet):
                         user=self.request.user,
                         following=OuterRef('pk')
                     )
-                )
+                ),
+                recipes_count=Count('following__recipes')
             )
         )
 

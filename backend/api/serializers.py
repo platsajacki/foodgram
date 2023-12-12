@@ -2,10 +2,7 @@ from collections import OrderedDict
 from typing import Any
 
 from django.db.models import QuerySet
-from djoser.serializers import (
-    UserCreateSerializer as DjoserUserCreateSerializer,
-    UserSerializer as DjoserUserSerializer
-)
+from djoser.serializers import UserSerializer as DjoserUserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
@@ -18,20 +15,6 @@ from .validators import (
 )
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 from users.models import User, FavoriteRecipe, ShoppingCart, Follow
-
-
-class UserCreateSerializer(DjoserUserCreateSerializer):
-    """
-    Сериализатор для регистрации пользователя,
-    который учитывает недопустимость username со значением 'me'.
-    """
-    def validate_username(self, value: str) -> str:
-        """Проверка имени пользователя на недопустимые значения."""
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" недопустимо.'
-            )
-        return value
 
 
 class UserSerializer(DjoserUserSerializer):

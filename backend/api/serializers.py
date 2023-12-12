@@ -99,7 +99,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Recipe) -> dict[str, Any]:
         """Готовит данные для отправки в ответе."""
-        if self.context['request'].method == ['POST', 'PATCH']:
+        if self.context['request'].method in ['POST', 'PATCH']:
             instance: Recipe = (
                 self.context['view']
                 .get_queryset().get(id=instance.id)

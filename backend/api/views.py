@@ -1,15 +1,12 @@
 from datetime import date
 from io import BytesIO
-from typing import Any
 
-from django.db.models import QuerySet, Exists
-from django.http import FileResponse
+from django.db.models import QuerySet, Exists, OuterRef, Count
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -19,7 +16,6 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .filters import RecipeFilterSet
-from .mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .permissions import IsAuthor
 from .serializers import (
     UserSerializer, TagSerializer,
@@ -27,6 +23,7 @@ from .serializers import (
     ShoppingCartSerializer, FavoriteRecipeSerializer,
     FollowSerializer
 )
+from .view_mixins import GetNonePaginatorAllowAny, UserRecipeViewSet
 from .utils import get_xls_shopping_cart
 from recipes.models import Tag, Ingredient, Recipe
 from users.models import User, ShoppingCart, FavoriteRecipe, Follow
@@ -46,9 +43,12 @@ class UserViewSet(DjoserUserViewSet):
         return (
             User.objects
             .annotate(
-                follower=Exists(
+                is_subscribed=Exists(
                     queryset=Follow.with_related
-                    .filter(user=self.request.user)
+                    .filter(
+                        user=self.request.user,
+                        following=OuterRef('pk')
+                    )
                 )
             )
         )
@@ -108,7 +108,7 @@ class RecipeViewSet(ModelViewSet):
         связанных объектов Follow, Ingredient, Tag для текущего пользователя.
         """
         if not self.request.user.is_authenticated:
-            return Recipe.with_related.all()
+            return Recipe.with_related.select_related('author')
         return (
             Recipe.with_related
             .annotate_user_flags(user=self.request.user)
@@ -161,39 +161,28 @@ class FollowViewSet(ModelViewSet):
         return (
             Follow.with_related
             .filter(user=self.request.user)
-            .prefetch_related('following__recipes')
-            .all()
+            .annotate(
+                is_subscribed=Exists(
+                    queryset=Follow.with_related
+                    .filter(
+                        user=self.request.user,
+                        following=OuterRef('pk')
+                    )
+                ),
+                recipes_count=Count('following__recipes')
+            )
         )
 
-    def get_following(self) -> User:
+    def get_following(self) -> User | Http404:
         """Получает подписку."""
         return get_object_or_404(
             User, id=self.kwargs.get('id')
         )
 
-    def get_object(self) -> Follow:
+    def get_object(self) -> Follow | Http404:
         """Получает объект связанной модели подписки."""
         return get_object_or_404(
             Follow.objects,
             user=self.request.user,
             following=self.get_following()
         )
-
-    def destroy(
-            self, request: Request, *args: Any, **kwargs: dict[str, Any]
-    ) -> Response | ValidationError:
-        """Удаляет объект, если он существует."""
-        following: User = self.get_following()
-        try:
-            instance: Follow = Follow.objects.get(
-                user=request.user,
-                following=following
-            )
-        except Follow.DoesNotExist:
-            raise ValidationError(
-                {
-                    'follow': 'Вы не были подписаны на данного пользователя.'
-                }
-            )
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -11,7 +11,6 @@ class RecipeQuerySet(QuerySet):
         """
         return (
             self
-            .select_related('author',)
             .prefetch_related(
                 'tags', 'recipeingredient_set__ingredient',
                 'favoriterecipe_set', 'shoppingcart_set',
@@ -57,12 +56,18 @@ class RecipeManager(Manager):
             )
             .prefetch_related(
                 Prefetch(
-                    'author__followings',
-                    queryset=(
-                        Follow.with_related
-                        .filter(user=user)
-                    ),
-                    to_attr='follower'
+                    'author',
+                    queryset=User.objects.annotate(
+                        is_subscribed=Exists(
+                            queryset=(
+                                Follow.with_related
+                                .filter(
+                                    user=user,
+                                    following=OuterRef('pk')
+                                )
+                            )
+                        )
+                    )
                 )
             )
         )

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Any
 
-from django.db.models import Model
+from django.db.models import Model, QuerySet
 from rest_framework.serializers import ValidationError
 from rest_framework.request import Request
 
@@ -70,32 +70,21 @@ def ingredients_unique_validator(
         seen_ingredients.add(ingredient_id)
 
 
-def get_ingredient_or_400(
-        all_id: tuple[int], id: int
-) -> Ingredient | ValidationError:
+def get_ingredients_or_400(all_id: set[int]) -> QuerySet | ValidationError:
     """
-    Получает объект ингредиента по его ID
-    или вызывает 'ValidationError', если объекта не существует.
+    Получает ингредиенты по их ID или вызывает 'ValidationError',
+    если какого-нибудь из объектов не существует.
     """
-    print(id, all_id)
-    if id not in all_id:
+    existing_ingredients: QuerySet = Ingredient.objects.filter(
+        id__in=all_id
+    )
+    if len(all_id) != len(existing_ingredients):
         raise ValidationError(
             {
                 'ingredients': 'Такого ингредиента не существует.'
             }
         )
-
-
-def valide_user_has_recipe(
-        related_model: Model | None
-) -> ValidationError | None:
-    """Проверяет наличие рецепта в у пользователя."""
-    if not related_model:
-        raise ValidationError(
-            {
-                'recipe': 'Рецепт не был ранее добавлен.'
-            }
-        )
+    return existing_ingredients
 
 
 def recipe_exist_validator(request: Request) -> Recipe | ValidationError:

@@ -10,4 +10,16 @@ class IngredientRecipeWriteField(serializers.ModelSerializer):
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'amount',)
-        write_only_fields = ('id', 'amount',)
+
+
+class IngredientRecipeReadField(serializers.ModelSerializer):
+    """Сериализатор для чтения данных о ингредиентах рецепта."""
+    id = serializers.IntegerField(source='ingredient.id')
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit'
+    )
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'amount', 'name', 'measurement_unit',)

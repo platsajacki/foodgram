@@ -6,7 +6,7 @@ from djoser.serializers import UserSerializer as DjoserUserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from .fields import IngredientRecipeWriteField
+from .fields import IngredientRecipeWriteField, IngredientRecipeReadField
 from .serializer_mixins import UserRecipeFieldsSet
 from .validators import (
     tags_unique_validator, ingredients_exist_validator, valide_image_exists,
@@ -47,14 +47,12 @@ class IngredientSerializer(serializers.ModelSerializer):
         )
 
 
-class RecipeSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Recipe."""
-    image = Base64ImageField(
-        validators=[valide_image_exists]
+class RecipeReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Recipe (чтение данных)."""
+    ingredients = IngredientRecipeReadField(
+        source='recipeingredient_set', many=True
     )
-    ingredients = IngredientRecipeWriteField(
-        write_only=True, many=True
-    )
+    tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
     is_favorited = serializers.BooleanField(
         read_only=True, default=False
@@ -72,6 +70,26 @@ class RecipeSerializer(serializers.ModelSerializer):
             'ingredients', 'tags',
             'is_favorited', 'is_in_shopping_cart',
         )
+
+
+class RecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Recipe."""
+    image = Base64ImageField(
+        validators=[valide_image_exists]
+    )
+    ingredients = IngredientRecipeWriteField(
+        write_only=True, many=True
+    )
+    author = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'name',
+            'author', 'image',
+            'text', 'cooking_time',
+            'ingredients', 'tags',
+        )
         validators = [
             ingredients_exist_validator,
             ingredients_unique_validator,
@@ -79,38 +97,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             tags_unique_validator,
         ]
 
-    def _prepare_ingredients(self, instance: Recipe) -> list[dict[str, Any]]:
-        """Подготавливает данные об ингредиентах для сериализации."""
-        ingredient_data: list = []
-        for recipe_ingredient in instance.recipeingredient_set.all():
-            ingredient: dict[str, Any] = {
-                'id': recipe_ingredient.ingredient.id,
-                'name': recipe_ingredient.ingredient.name,
-                'measurement_unit': (
-                    recipe_ingredient.ingredient.measurement_unit
-                ),
-                'amount': recipe_ingredient.amount,
-            }
-            ingredient_data.append(ingredient)
-        return ingredient_data
-
-    def _prepare_tags(self, instance: Recipe) -> list[dict[str, Any]]:
-        """Подготавливает данные о тегах для сериализации."""
-        tags_data: list = []
-        for tag in instance.tags.all():
-            tags_data.append(TagSerializer(tag).data)
-        return tags_data
-
     def to_representation(self, instance: Recipe) -> dict[str, Any]:
         """Готовит данные для отправки в ответе."""
-        if self.context['request'].method in ['POST', 'PACTH']:
+        if self.context['request'].method == ['POST', 'PATCH']:
             instance: Recipe = (
-                self.context['view'].get_queryset().get(id=instance.id)
+                self.context['view']
+                .get_queryset().get(id=instance.id)
             )
-        representation: dict[str, str] = super().to_representation(instance)
-        representation['ingredients'] = self._prepare_ingredients(instance)
-        representation['tags'] = self._prepare_tags(instance)
-        return representation
+        return RecipeReadSerializer(
+            instance=instance, context=self.context
+        ).data
 
     def create(self, validated_data: dict[str, Any]) -> Recipe:
         """

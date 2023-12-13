@@ -1,13 +1,11 @@
-from datetime import date
 from io import BytesIO
 
 from django.db.models import QuerySet, Exists, OuterRef, Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
 )
@@ -15,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .filters import RecipeFilterSet
+from .filters import RecipeFilterSet, IngredientFilterSet
 from .permissions import IsAuthor
 from .serializers import (
     UserSerializer, TagSerializer,
@@ -40,18 +38,7 @@ class UserViewSet(DjoserUserViewSet):
         """
         if not self.request.user.is_authenticated:
             return User.objects.all()
-        return (
-            User.objects
-            .annotate(
-                is_subscribed=Exists(
-                    queryset=Follow.with_related
-                    .filter(
-                        user=self.request.user,
-                        following=OuterRef('pk')
-                    )
-                )
-            )
-        )
+        return User.objects.add_is_subscribed(self.request.user)
 
     @action(
         detail=False,
@@ -73,20 +60,11 @@ class TagViewSet(GetNonePaginatorAllowAny, ModelViewSet):
 
 class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
     """Представление, отвечающее за работу с ингредиентами."""
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = [SearchFilter]
-    search_fields = ['name']
-
-    def get_queryset(self) -> QuerySet:
-        """
-        Получает QuerySet.
-        Если указан параметр 'name', фильтрует по имени.
-        """
-        queryset: QuerySet = Ingredient.objects.all()
-        name_param: str = self.request.query_params.get('name')
-        if name_param:
-            queryset: QuerySet = queryset.filter(name__istartswith=name_param)
-        return queryset
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilterSet
+    search_fields = ('name',)
 
 
 class RecipeViewSet(ModelViewSet):
@@ -136,8 +114,7 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
             .get_ingredients_shoppingcart()
         )
         buffer: BytesIO = get_xls_shopping_cart(ingredients)
-        today: date = timezone.now().date()
-        return FileResponse(buffer, filename=f'Список покупок_{today}.xls')
+        return FileResponse(buffer, filename='Список покупок.xls')
 
 
 class FavoriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):

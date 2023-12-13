@@ -3,9 +3,9 @@ from io import BytesIO
 from django.db.models import QuerySet, Exists, OuterRef, Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
 )
@@ -13,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .filters import RecipeFilterSet
+from .filters import RecipeFilterSet, IngredientFilterSet
 from .permissions import IsAuthor
 from .serializers import (
     UserSerializer, TagSerializer,
@@ -60,20 +60,11 @@ class TagViewSet(GetNonePaginatorAllowAny, ModelViewSet):
 
 class IngredientViewSet(GetNonePaginatorAllowAny, ModelViewSet):
     """Представление, отвечающее за работу с ингредиентами."""
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = [SearchFilter]
-    search_fields = ['name']
-
-    def get_queryset(self) -> QuerySet:
-        """
-        Получает QuerySet.
-        Если указан параметр 'name', фильтрует по имени.
-        """
-        queryset: QuerySet = Ingredient.objects.all()
-        name_param: str = self.request.query_params.get('name')
-        if name_param:
-            queryset: QuerySet = queryset.filter(name__istartswith=name_param)
-        return queryset
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilterSet
+    search_fields = ('name',)
 
 
 class RecipeViewSet(ModelViewSet):

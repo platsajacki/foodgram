@@ -2,7 +2,18 @@ from django.db.models import QuerySet
 from django_filters import rest_framework as filters
 from django_filters.widgets import BooleanWidget
 
-from recipes.models import Recipe, Tag
+from recipes.models import Recipe, Tag, Ingredient
+
+
+class IngredientFilterSet(filters.FilterSet):
+    """
+    Фильтрует набор данных ингредиентов по имени, используя istartswith.
+    """
+    name = filters.CharFilter(lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)
 
 
 class RecipeFilterSet(filters.FilterSet):

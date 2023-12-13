@@ -3,7 +3,6 @@ from django_filters import rest_framework as filters
 from django_filters.widgets import BooleanWidget
 
 from recipes.models import Recipe, Tag
-from users.models import User
 
 
 class RecipeFilterSet(filters.FilterSet):
@@ -35,21 +34,6 @@ class RecipeFilterSet(filters.FilterSet):
             'tags',
         ]
 
-    def get_current_queryset(
-            self, queryset: QuerySet,
-            value: bool, user_field: str
-    ):
-        """
-        Возвращает отфильтрованный QuerySet рецептов
-        по связанному полю 'user_field' для текущего пользователя.
-        """
-        current_user: User = self.request.user
-        if current_user.is_anonymous:
-            return queryset.none()
-        if value:
-            return queryset.filter(**{user_field: True})
-        return queryset
-
     def filter_is_favorited(
             self, queryset: QuerySet, name: str, value: bool
     ) -> QuerySet[Recipe]:
@@ -57,9 +41,9 @@ class RecipeFilterSet(filters.FilterSet):
         Фильтрует рецепты по наличию/отсутствию в списке избранного
         для текущего пользователя.
         """
-        return self.get_current_queryset(
-            queryset, value, 'is_favorited'
-        )
+        if value and self.request.user.is_authenticated:
+            return queryset.filter(is_favorited=True)
+        return queryset
 
     def filter_is_in_shopping_cart(
             self, queryset: QuerySet, name: str, value: bool
@@ -68,6 +52,6 @@ class RecipeFilterSet(filters.FilterSet):
         Фильтрует рецепты по наличию/отсутствию в корзине
         для текущего пользователя.
         """
-        return self.get_current_queryset(
-            queryset, value, 'is_in_shopping_cart'
-        )
+        if value and self.request.user.is_authenticated:
+            return queryset.filter(is_in_shopping_cart=True)
+        return queryset

@@ -46,10 +46,9 @@ class RecipeFilterSet(filters.FilterSet):
         current_user: User = self.request.user
         if current_user.is_anonymous:
             return queryset.none()
-        filter_data: dict[str, User] = {user_field: current_user}
         if value:
-            return queryset.filter(**filter_data)
-        return queryset.exclude(**filter_data)
+            return queryset.filter(**{user_field: True})
+        return queryset
 
     def filter_is_favorited(
             self, queryset: QuerySet, name: str, value: bool
@@ -58,7 +57,9 @@ class RecipeFilterSet(filters.FilterSet):
         Фильтрует рецепты по наличию/отсутствию в списке избранного
         для текущего пользователя.
         """
-        return self.get_current_queryset(queryset, value, 'user_favorites')
+        return self.get_current_queryset(
+            queryset, value, 'is_favorited'
+        )
 
     def filter_is_in_shopping_cart(
             self, queryset: QuerySet, name: str, value: bool
@@ -67,4 +68,6 @@ class RecipeFilterSet(filters.FilterSet):
         Фильтрует рецепты по наличию/отсутствию в корзине
         для текущего пользователя.
         """
-        return self.get_current_queryset(queryset, value, 'user_shopping_cart')
+        return self.get_current_queryset(
+            queryset, value, 'is_in_shopping_cart'
+        )

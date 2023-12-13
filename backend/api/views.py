@@ -1,10 +1,8 @@
-from datetime import date
 from io import BytesIO
 
 from django.db.models import QuerySet, Exists, OuterRef, Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
@@ -40,18 +38,7 @@ class UserViewSet(DjoserUserViewSet):
         """
         if not self.request.user.is_authenticated:
             return User.objects.all()
-        return (
-            User.objects
-            .annotate(
-                is_subscribed=Exists(
-                    queryset=Follow.with_related
-                    .filter(
-                        user=self.request.user,
-                        following=OuterRef('pk')
-                    )
-                )
-            )
-        )
+        return User.objects.add_is_subscribed(self.request.user)
 
     @action(
         detail=False,
@@ -136,8 +123,7 @@ class ShoppingCartViewSet(UserRecipeViewSet, ModelViewSet):
             .get_ingredients_shoppingcart()
         )
         buffer: BytesIO = get_xls_shopping_cart(ingredients)
-        today: date = timezone.now().date()
-        return FileResponse(buffer, filename=f'Список покупок_{today}.xls')
+        return FileResponse(buffer, filename='Список покупок.xls')
 
 
 class FavoriteRecipeViewSet(UserRecipeViewSet, ModelViewSet):

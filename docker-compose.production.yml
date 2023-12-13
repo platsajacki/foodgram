@@ -14,7 +14,7 @@ services:
 
   backend:
     image: platsajacki/foodgram_backend
-    build: ./backend/foodgram/
+    build: ./backend/
     env_file: .env
     volumes:
       - static:/backend_static

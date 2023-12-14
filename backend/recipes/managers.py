@@ -42,7 +42,7 @@ class RecipeManager(Manager):
                 is_in_shopping_cart=Exists(
                     queryset=User.objects.filter(
                         id=user.id,
-                        shoppingcart=OuterRef('pk')
+                        shopping_cart=OuterRef('pk')
                     )
                 )
             )

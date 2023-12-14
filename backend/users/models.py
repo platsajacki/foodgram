@@ -84,7 +84,7 @@ class Follow(DateAdded, models.Model):
 
     def __str__(self) -> str:
         """
-        Возвращает строковое предсталение при обращении к объекту.
+        Возвращает строковое представление при обращении к объекту.
         """
         return (
             f'{self.user.first_name} {self.user.last_name} подписан(а) на '
@@ -105,7 +105,7 @@ class FavoriteRecipe(UserRecipe, DateAdded, models.Model):
 
     def __str__(self) -> str:
         """
-        Возвращает строковое предсталение при обращении к объекту.
+        Возвращает строковое представление при обращении к объекту.
         """
         return f'Избранное {self.user.first_name} {self.user.last_name}'
 
@@ -125,6 +125,6 @@ class ShoppingCart(UserRecipe, DateAdded, models.Model):
 
     def __str__(self) -> str:
         """
-        Возвращает строковое предсталение при обращении к объекту.
+        Возвращает строковое представление при обращении к объекту.
         """
         return f'Корзина {self.user.first_name} {self.user.last_name}'

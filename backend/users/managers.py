@@ -27,7 +27,7 @@ class UserManager(DjangoUserManager):
 
 
 class FollowQuerySet(QuerySet):
-    """QuerySet для работы с моделью Recipe."""
+    """QuerySet для работы с моделью Follow."""
     def related_tables(self) -> 'FollowQuerySet':
         """Отимизирует запрос, присоединяя таблицы."""
         return (
@@ -40,7 +40,7 @@ class FollowQuerySet(QuerySet):
 
 
 class FollowManager(Manager):
-    """Manager для работы с моделью Recipe."""
+    """Manager для работы с моделью Follow."""
     def get_queryset(self) -> 'FollowManager':
         """
         Возвращает QuerySet для модели Follow
